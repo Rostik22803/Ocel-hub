@@ -30,7 +30,7 @@ local DefaultLighting = {
     OutdoorAmbient = Color3.fromRGB(70, 70, 70),
     Brightness = 1,
     ClockTime = 14,
-    FogEnd = 10000000,
+    FogEnd = 100000,
     GlobalShadows = true,
 }
 
@@ -40,9 +40,9 @@ local function ApplyFullbright(enabled)
         local c = Colors.Fullbright
         Lighting.Ambient = c
         Lighting.OutdoorAmbient = c
-        Lighting.Brightness = 20
+        Lighting.Brightness = 5
         Lighting.ClockTime = 12
-        Lighting.FogEnd = 9999999
+        Lighting.FogEnd = 999999
         Lighting.GlobalShadows = false
         for _, fx in pairs(Lighting:GetChildren()) do
             if fx:IsA("PostEffect") then fx.Enabled = false end
@@ -154,9 +154,32 @@ local function CustomNotify(title, text)
     end)
 end
 
+-- FOV настройки
+_G.CustomFOV = 70 -- дефолтный FOV в Roblox
+local DEFAULT_FOV = 70
+local MIN_FOV = 30
+local MAX_FOV = 120
+
+local function ApplyFOV(value)
+    local camera = workspace.CurrentCamera
+    if camera then
+        camera.FieldOfView = value
+    end
+end
+
+-- Держим FOV актуальным при смене камеры
+game:GetService("RunService").RenderStepped:Connect(function()
+    if _G.CustomFOV ~= DEFAULT_FOV then
+        local camera = workspace.CurrentCamera
+        if camera and camera.FieldOfView ~= _G.CustomFOV then
+            camera.FieldOfView = _G.CustomFOV
+        end
+    end
+end)
+
 -- Главное окно меню
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 240, 0, 290)
+MainFrame.Size = UDim2.new(0, 240, 0, 330)
 MainFrame.Position = UDim2.new(0.1, 0, 0.1, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 MainFrame.Active = true
@@ -199,7 +222,7 @@ Instance.new("UICorner", MinimizeBtn).CornerRadius = UDim.new(0, 4)
 
 -- Контейнер для кнопок
 local ButtonContainer = Instance.new("Frame")
-ButtonContainer.Size = UDim2.new(0, 240, 0, 250)
+ButtonContainer.Size = UDim2.new(0, 240, 0, 290)
 ButtonContainer.Position = UDim2.new(0, 0, 0, 35)
 ButtonContainer.BackgroundTransparency = 1
 ButtonContainer.Parent = MainFrame
@@ -245,14 +268,14 @@ local currentActiveKey = nil
 local function ClosePicker()
     currentActiveKey = nil
     PickerPanel.Visible = false
-    MainFrame:TweenSize(UDim2.new(0, 240, 0, 290), "In", "Quart", 0.25, true)
+    MainFrame:TweenSize(UDim2.new(0, 240, 0, 330), "In", "Quart", 0.25, true)
 end
 
 local function OpenPicker(colorKey)
     if currentActiveKey == colorKey then ClosePicker() else
         currentActiveKey = colorKey
         PickerPanel.Visible = true
-        MainFrame:TweenSize(UDim2.new(0, 390, 0, 290), "Out", "Quart", 0.25, true)
+        MainFrame:TweenSize(UDim2.new(0, 390, 0, 330), "Out", "Quart", 0.25, true)
     end
 end
 
@@ -266,7 +289,7 @@ MinimizeBtn.MouseButton1Click:Connect(function()
         MainFrame:TweenSize(UDim2.new(0, 240, 0, 35), "Out", "Quart", 0.25, true)
     else
         MinimizeBtn.Text = "—"
-        MainFrame:TweenSize(UDim2.new(0, 240, 0, 290), "Out", "Quart", 0.25, true)
+        MainFrame:TweenSize(UDim2.new(0, 240, 0, 330), "Out", "Quart", 0.25, true)
     end
 end)
 
@@ -340,6 +363,76 @@ local NotifToggleButton = CreateEspControl("УВЕДОМЛЕНИЯ", "TextNotif"
 
 NotifToggleButton.Text = "УВЕДОМЛЕНИЯ: ВКЛ"
 NotifToggleButton.BackgroundColor3 = Color3.fromRGB(40, 150, 40)
+
+-- FOV строка
+local FovRow = Instance.new("Frame")
+FovRow.Size = UDim2.new(0, 220, 0, 36)
+FovRow.BackgroundTransparency = 1
+FovRow.Parent = ButtonContainer
+
+local FovLabel = Instance.new("TextLabel")
+FovLabel.Size = UDim2.new(0, 80, 1, 0)
+FovLabel.Position = UDim2.new(0, 0, 0, 0)
+FovLabel.BackgroundTransparency = 1
+FovLabel.Text = "FOV: " .. _G.CustomFOV
+FovLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+FovLabel.Font = Enum.Font.SourceSansBold
+FovLabel.TextSize = 13
+FovLabel.TextXAlignment = Enum.TextXAlignment.Center
+FovLabel.Parent = FovRow
+
+local FovMinusBtn = Instance.new("TextButton")
+FovMinusBtn.Size = UDim2.new(0, 36, 0, 36)
+FovMinusBtn.Position = UDim2.new(0, 82, 0, 0)
+FovMinusBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+FovMinusBtn.Text = "−"
+FovMinusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+FovMinusBtn.Font = Enum.Font.SourceSansBold
+FovMinusBtn.TextSize = 18
+FovMinusBtn.Parent = FovRow
+Instance.new("UICorner", FovMinusBtn).CornerRadius = UDim.new(0, 6)
+
+local FovPlusBtn = Instance.new("TextButton")
+FovPlusBtn.Size = UDim2.new(0, 36, 0, 36)
+FovPlusBtn.Position = UDim2.new(0, 122, 0, 0)
+FovPlusBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+FovPlusBtn.Text = "+"
+FovPlusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+FovPlusBtn.Font = Enum.Font.SourceSansBold
+FovPlusBtn.TextSize = 18
+FovPlusBtn.Parent = FovRow
+Instance.new("UICorner", FovPlusBtn).CornerRadius = UDim.new(0, 6)
+
+local FovResetBtn = Instance.new("TextButton")
+FovResetBtn.Size = UDim2.new(0, 36, 0, 36)
+FovResetBtn.Position = UDim2.new(0, 162, 0, 0)
+FovResetBtn.BackgroundColor3 = Color3.fromRGB(40, 80, 140)
+FovResetBtn.Text = "↺"
+FovResetBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+FovResetBtn.Font = Enum.Font.SourceSansBold
+FovResetBtn.TextSize = 15
+FovResetBtn.Parent = FovRow
+Instance.new("UICorner", FovResetBtn).CornerRadius = UDim.new(0, 6)
+
+local function UpdateFovLabel()
+    FovLabel.Text = "FOV: " .. _G.CustomFOV
+    ApplyFOV(_G.CustomFOV)
+end
+
+FovMinusBtn.MouseButton1Click:Connect(function()
+    _G.CustomFOV = math.max(MIN_FOV, _G.CustomFOV - 5)
+    UpdateFovLabel()
+end)
+
+FovPlusBtn.MouseButton1Click:Connect(function()
+    _G.CustomFOV = math.min(MAX_FOV, _G.CustomFOV + 5)
+    UpdateFovLabel()
+end)
+
+FovResetBtn.MouseButton1Click:Connect(function()
+    _G.CustomFOV = DEFAULT_FOV
+    UpdateFovLabel()
+end)
 
 -- =============================================================================
 -- 2. ESP ENGINE
