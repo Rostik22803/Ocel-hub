@@ -22,6 +22,16 @@ local OriginalLighting = {
     GlobalShadows = game:GetService("Lighting").GlobalShadows,
 }
 
+-- Цвета обводок и кастомного текста
+local Colors = {
+    Door = Color3.fromRGB(0, 255, 100),     
+    Monster = Color3.fromRGB(255, 50, 50),  
+    Item = Color3.fromRGB(255, 200, 0),     
+    Hiding = Color3.fromRGB(0, 180, 255),
+    TextNotif = Color3.fromRGB(240, 240, 240),
+    Fullbright = Color3.fromRGB(178, 178, 178)
+}
+
 local function ApplyFullbright(enabled)
     local Lighting = game:GetService("Lighting")
     if enabled then
@@ -50,16 +60,6 @@ local function ApplyFullbright(enabled)
         end
     end
 end
-
--- Цвета обводок и кастомного текста
-local Colors = {
-    Door = Color3.fromRGB(0, 255, 100),     
-    Monster = Color3.fromRGB(255, 50, 50),  
-    Item = Color3.fromRGB(255, 200, 0),     
-    Hiding = Color3.fromRGB(0, 180, 255),
-    TextNotif = Color3.fromRGB(240, 240, 240),
-    Fullbright = Color3.fromRGB(178, 178, 178)
-}
 
 local ColorPalette = {
     Color3.fromRGB(0, 255, 100), Color3.fromRGB(255, 50, 50), Color3.fromRGB(255, 200, 0),
