@@ -1,5 +1,5 @@
 -- =============================================================================
--- DOORS LOCAL MEGA HUB v11.0 (OCEL-HUB PINNED TITLE)
+-- DOORS LOCAL MEGA HUB v12.0 (OCEL-HUB RE-COLOR EDITION)
 -- =============================================================================
 
 local oldGui = game:GetService("CoreGui"):FindFirstChild("DoorsLocalMegaHubFinal")
@@ -18,7 +18,7 @@ local Colors = {
     Monster = Color3.fromRGB(255, 50, 50),  
     Item = Color3.fromRGB(255, 200, 0),     
     Hiding = Color3.fromRGB(0, 180, 255),
-    TextNotif = Color3.fromRGB(240, 240, 240) -- Цвет для текста уведомлений и логотипа
+    TextNotif = Color3.fromRGB(240, 240, 240) -- Настраивается шестеренкой уведомлений
 }
 
 local ColorPalette = {
@@ -109,9 +109,9 @@ local function CustomNotify(title, text)
     end)
 end
 
--- Главное окно меню
+-- Главное окно меню (высота уменьшена до 250, так как убрали лишнюю кнопку)
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 240, 0, 290)
+MainFrame.Size = UDim2.new(0, 240, 0, 250)
 MainFrame.Position = UDim2.new(0.1, 0, 0.1, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 MainFrame.Active = true
@@ -120,13 +120,13 @@ MainFrame.ClipsDescendants = true
 MainFrame.Parent = ScreenGui
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
 
--- Шапка меню, которая НЕ скрывается (высота 35)
+-- Шапка меню, которая НЕ скрывается
 local HeaderFrame = Instance.new("Frame")
 HeaderFrame.Size = UDim2.new(1, 0, 0, 35)
 HeaderFrame.BackgroundTransparency = 1
 HeaderFrame.Parent = MainFrame
 
--- Надпись Ocel-hub теперь внутри HeaderFrame
+-- Надпись Ocel-hub
 local LogoLabel = Instance.new("TextLabel")
 LogoLabel.Size = UDim2.new(0, 150, 1, 0)
 LogoLabel.Position = UDim2.new(0, 12, 0, 0)
@@ -139,7 +139,7 @@ LogoLabel.BackgroundTransparency = 1
 LogoLabel.Parent = HeaderFrame
 ActiveLogoLabel = LogoLabel
 
--- Кнопка Свернуть/Развернуть внутри HeaderFrame
+-- Кнопка Свернуть/Развернуть
 local MinimizeBtn = Instance.new("TextButton")
 MinimizeBtn.Size = UDim2.new(0, 25, 0, 25)
 MinimizeBtn.Position = UDim2.new(1, -30, 0, 5)
@@ -154,7 +154,7 @@ Instance.new("UICorner", MinimizeBtn).CornerRadius = UDim.new(0, 4)
 
 -- Контейнер для кнопок
 local ButtonContainer = Instance.new("Frame")
-ButtonContainer.Size = UDim2.new(0, 240, 0, 250)
+ButtonContainer.Size = UDim2.new(0, 240, 0, 210)
 ButtonContainer.Position = UDim2.new(0, 0, 0, 35)
 ButtonContainer.BackgroundTransparency = 1
 ButtonContainer.Parent = MainFrame
@@ -166,7 +166,7 @@ UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
 -- Встроенная палитра цветов
 local PickerPanel = Instance.new("Frame")
-PickerPanel.Size = UDim2.new(0, 135, 0, 240)
+PickerPanel.Size = UDim2.new(0, 135, 0, 200)
 PickerPanel.Position = UDim2.new(0, 245, 0, 40)
 PickerPanel.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
 PickerPanel.BorderSizePixel = 0
@@ -191,7 +191,7 @@ GridFrame.Parent = PickerPanel
 
 local UIGridLayout = Instance.new("UIGridLayout")
 UIGridLayout.Parent = GridFrame
-UIGridLayout.CellSize = UDim2.new(0, 36, 0, 32)
+UIGridLayout.CellSize = UDim2.new(0, 36, 0, 25)
 UIGridLayout.CellPadding = UDim2.new(0, 6, 0, 6)
 UIGridLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
@@ -200,14 +200,14 @@ local currentActiveKey = nil
 local function ClosePicker()
     currentActiveKey = nil
     PickerPanel.Visible = false
-    MainFrame:TweenSize(UDim2.new(0, 240, 0, 290), "In", "Quart", 0.25, true)
+    MainFrame:TweenSize(UDim2.new(0, 240, 0, 250), "In", "Quart", 0.25, true)
 end
 
 local function OpenPicker(colorKey)
     if currentActiveKey == colorKey then ClosePicker() else
         currentActiveKey = colorKey
         PickerPanel.Visible = true
-        MainFrame:TweenSize(UDim2.new(0, 390, 0, 290), "Out", "Quart", 0.25, true)
+        MainFrame:TweenSize(UDim2.new(0, 390, 0, 250), "Out", "Quart", 0.25, true)
     end
 end
 
@@ -217,11 +217,11 @@ MinimizeBtn.MouseButton1Click:Connect(function()
     isMinimized = not isMinimized
     if isMinimized then
         MinimizeBtn.Text = "+"
-        ClosePicker() -- Принудительно закрываем палитру при сворачивании
+        ClosePicker() 
         MainFrame:TweenSize(UDim2.new(0, 240, 0, 35), "Out", "Quart", 0.25, true)
     else
         MinimizeBtn.Text = "—"
-        MainFrame:TweenSize(UDim2.new(0, 240, 0, 290), "Out", "Quart", 0.25, true)
+        MainFrame:TweenSize(UDim2.new(0, 240, 0, 250), "Out", "Quart", 0.25, true)
     end
 end)
 
@@ -242,7 +242,7 @@ for _, color in pairs(ColorPalette) do
     end)
 end
 
--- Конструктор строк управления ESP
+-- Конструктор строк управления
 local function CreateEspControl(name, colorKey)
     local RowFrame = Instance.new("Frame")
     RowFrame.Size = UDim2.new(0, 220, 0, 36)
@@ -279,26 +279,11 @@ local DoorButton = CreateEspControl("ESP ДВЕРЕЙ", "Door")
 local MonsterButton = CreateEspControl("ESP МОНСТРОВ", "Monster")
 local ItemButton = CreateEspControl("ESP ПРЕДМЕТОВ", "Item")
 local HidingButton = CreateEspControl("ESP УКРЫТИЙ", "Hiding")
+local NotifToggleButton = CreateEspControl("УВЕДОМЛЕНИЯ", "TextNotif")
 
-local TextColorButton = CreateEspControl("ЦВЕТ ТЕКСТА СООБЩЕНИЙ", "TextNotif")
-TextColorButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-TextColorButton.Text = "НАСТРОИТЬ ЦВЕТ ТЕКСТА"
-
--- Одиночная кнопка для Уведомлений
-local NotifToggleRow = Instance.new("Frame")
-NotifToggleRow.Size = UDim2.new(0, 220, 0, 36)
-NotifToggleRow.BackgroundTransparency = 1
-NotifToggleRow.Parent = ButtonContainer
-
-local NotifToggleButton = Instance.new("TextButton")
-NotifToggleButton.Size = UDim2.new(1, 0, 1, 0)
-NotifToggleButton.BackgroundColor3 = Color3.fromRGB(40, 150, 40)
+-- Настраиваем стартовое состояние для кнопки уведомлений (она по дефолту ВКЛ)
 NotifToggleButton.Text = "УВЕДОМЛЕНИЯ: ВКЛ"
-NotifToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-NotifToggleButton.Font = Enum.Font.SourceSansBold
-NotifToggleButton.TextSize = 13
-NotifToggleButton.Parent = NotifToggleRow
-Instance.new("UICorner", NotifToggleButton).CornerRadius = UDim.new(0, 6)
+NotifToggleButton.BackgroundColor3 = Color3.fromRGB(40, 150, 40)
 
 -- =============================================================================
 -- 2. ESP ENGINE
@@ -312,7 +297,7 @@ local function ApplyESP(object, color, text, id)
         local label = billboard:FindFirstChildOfClass("TextLabel")
         if label then 
             label.Text = text
-            label.TextColor3 = Color3.fromRGB(255, 255, 255) 
+            label.TextColor3 = color -- Текст теперь ТОЖЕ принимает цвет из палитры объекта!
         end
         highlight.FillColor = color
         return 
@@ -337,7 +322,7 @@ local function ApplyESP(object, color, text, id)
     label.Size = UDim2.new(1, 0, 1, 0)
     label.BackgroundTransparency = 1
     label.Text = text
-    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.TextColor3 = color -- Привязываем цвет текста к цвету обводки
     label.Font = Enum.Font.SourceSansBold
     label.TextSize = 15
     label.Parent = bGui
@@ -481,9 +466,6 @@ DoorButton.MouseButton1Click:Connect(function() ToggleState(DoorButton, "DoorEsp
 MonsterButton.MouseButton1Click:Connect(function() ToggleState(MonsterButton, "MonsterEspEnabled", "ESP МОНСТРОВ: ВКЛ", "ESP МОНСТРОВ: ВЫКЛ") end)
 ItemButton.MouseButton1Click:Connect(function() ToggleState(ItemButton, "ItemEspEnabled", "ESP ПРЕДМЕТОВ: ВКЛ", "ESP ПРЕДМЕТОВ: ВЫКЛ") end)
 HidingButton.MouseButton1Click:Connect(function() ToggleState(HidingButton, "HidingEspEnabled", "ESP УКРЫТИЙ: ВКЛ", "ESP УКРЫТИЙ: ВЫКЛ") end)
+NotifToggleButton.MouseButton1Click:Connect(function() ToggleState(NotifToggleButton, "NotificationsEnabled", "УВЕДОМЛЕНИЯ: ВКЛ", "УВЕДОМЛЕНИЯ: ВЫКЛ") end)
 
-NotifToggleButton.MouseButton1Click:Connect(function()
-    ToggleState(NotifToggleButton, "NotificationsEnabled", "УВЕДОМЛЕНИЯ: ВКЛ", "УВЕДОМЛЕНИЯ: ВЫКЛ")
-end)
-
-CustomNotify("SYSTEM", "Ocel-hub v11.0 успешно обновлен!")
+CustomNotify("SYSTEM", "Ocel-hub v12.0 полностью настроен!")
