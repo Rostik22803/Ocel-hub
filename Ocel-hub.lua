@@ -1,13 +1,16 @@
 -- =============================================================================
--- DOORS LOCAL MEGA HUB v12.3 (CORE GUI + INSTANT INTERACT)
+-- DOORS LOCAL MEGA HUB v12.3 (FULL RESTORE + FORCE INSTANT INTERACT)
 -- =============================================================================
 
 local oldGui = game:GetService("CoreGui"):FindFirstChild("DoorsLocalMegaHubFinal")
 if oldGui then oldGui:Destroy() end
 
+_G.DoorEspEnabled = false
+_G.MonsterEspEnabled = false
+_G.ItemEspEnabled = false
+_G.HidingEspEnabled = false
 _G.InstantInteract = false
 
--- Создание интерфейса в CoreGui
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "DoorsLocalMegaHubFinal"
 ScreenGui.Parent = game:GetService("CoreGui")
@@ -35,6 +38,55 @@ UIListLayout.Parent = ScrollingFrame
 UIListLayout.Padding = UDim.new(0, 6)
 UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
+-- =============================================================================
+-- FORCE INSTANT INTERACT (Цикл принудительного сброса)
+-- =============================================================================
+task.spawn(function()
+    while task.wait(0.1) do
+        if _G.InstantInteract then
+            for _, obj in pairs(workspace:GetDescendants()) do
+                if obj:IsA("ProximityPrompt") then
+                    if obj.HoldDuration ~= 0 then
+                        obj.HoldDuration = 0
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- =============================================================================
+-- ФУНКЦИЯ СОЗДАНИЯ КНОПОК
+-- =============================================================================
+local function CreateToggle(name, varName)
+    local Btn = Instance.new("TextButton")
+    Btn.Size = UDim2.new(0, 210, 0, 36)
+    Btn.BackgroundColor3 = Color3.fromRGB(150, 40, 40)
+    Btn.Text = name .. ": ВЫКЛ"
+    Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Btn.Font = Enum.Font.SourceSansBold
+    Btn.TextSize = 13
+    Btn.Parent = ScrollingFrame
+    Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 6)
+    
+    Btn.MouseButton1Click:Connect(function()
+        _G[varName] = not _G[varName]
+        if _G[varName] then
+            Btn.Text = name .. ": ВКЛ"
+            Btn.BackgroundColor3 = Color3.fromRGB(40, 150, 40)
+        else
+            Btn.Text = name .. ": ВЫКЛ"
+            Btn.BackgroundColor3 = Color3.fromRGB(150, 40, 40)
+        end
+    end)
+end
+
+-- Создаем кнопки меню
+CreateToggle("ESP ДВЕРЕЙ", "DoorEspEnabled")
+CreateToggle("ESP МОНСТРОВ", "MonsterEspEnabled")
+CreateToggle("ESP ПРЕДМЕТОВ", "ItemEspEnabled")
+CreateToggle("ESP УКРЫТИЙ", "HidingEspEnabled")
+CreateToggle("Instant Interact", "InstantInteract")
 -- =============================================================================
 -- INSTANT INTERACT LOGIC
 -- =============================================================================
