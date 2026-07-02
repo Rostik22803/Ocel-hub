@@ -24,13 +24,14 @@ local Colors = {
 }
 
 -- Фуллбрайт: освещение
+-- Дефолты хардкодим — не берём из Lighting, т.к. игра может уже успеть его перекрасить
 local DefaultLighting = {
-    Ambient = game:GetService("Lighting").Ambient,
-    OutdoorAmbient = game:GetService("Lighting").OutdoorAmbient,
-    Brightness = game:GetService("Lighting").Brightness,
-    ClockTime = game:GetService("Lighting").ClockTime,
-    FogEnd = game:GetService("Lighting").FogEnd,
-    GlobalShadows = game:GetService("Lighting").GlobalShadows,
+    Ambient = Color3.fromRGB(0, 0, 0),
+    OutdoorAmbient = Color3.fromRGB(70, 70, 70),
+    Brightness = 1,
+    ClockTime = 14,
+    FogEnd = 100000,
+    GlobalShadows = true,
 }
 
 local function ApplyFullbright(enabled)
@@ -39,11 +40,10 @@ local function ApplyFullbright(enabled)
         local c = Colors.Fullbright
         Lighting.Ambient = c
         Lighting.OutdoorAmbient = c
-        Lighting.Brightness = 2
+        Lighting.Brightness = 5
         Lighting.ClockTime = 12
-        Lighting.FogEnd = 100000
+        Lighting.FogEnd = 999999
         Lighting.GlobalShadows = false
-        -- Убираем эффекты освещения (BlurEffect, ColorCorrectionEffect и т.п.)
         for _, fx in pairs(Lighting:GetChildren()) do
             if fx:IsA("PostEffect") then fx.Enabled = false end
         end
