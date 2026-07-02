@@ -1,5 +1,5 @@
--- =============================================================================
--- DOORS LOCAL MEGA HUB v12.0 (OCEL-HUB RE-COLOR EDITION)
+-- ==-- =============================================================================
+-- DOORS LOCAL MEGA HUB v12.1 (OCEL-HUB INSTANT NOTIF RE-COLOR)
 -- =============================================================================
 
 local oldGui = game:GetService("CoreGui"):FindFirstChild("DoorsLocalMegaHubFinal")
@@ -18,7 +18,7 @@ local Colors = {
     Monster = Color3.fromRGB(255, 50, 50),  
     Item = Color3.fromRGB(255, 200, 0),     
     Hiding = Color3.fromRGB(0, 180, 255),
-    TextNotif = Color3.fromRGB(240, 240, 240) -- Настраивается шестеренкой уведомлений
+    TextNotif = Color3.fromRGB(240, 240, 240) 
 }
 
 local ColorPalette = {
@@ -43,6 +43,7 @@ local function GetCurrentRoomNumber()
 end
 
 local ActiveLogoLabel = nil
+local ActiveNotifLabels = {} -- Хранилище для активных текстовых блоков уведомлений
 
 -- =============================================================================
 -- 1. ИНТЕРФЕЙС И УВЕДОМЛЕНИЯ
@@ -98,18 +99,22 @@ local function CustomNotify(title, text)
     TextLabel.BackgroundTransparency = 1
     TextLabel.TextXAlignment = Enum.TextXAlignment.Left
     TextLabel.Parent = NotifFrame
+    
+    -- Добавляем в таблицу отслеживания
+    ActiveNotifLabels[TextLabel] = true
 
     NotifFrame.Position = UDim2.new(1, 0, 0, 0)
     NotifFrame:TweenPosition(UDim2.new(0, 0, 0, 0), "Out", "Quart", 0.3, true)
     
     task.delay(5, function()
         if NotifFrame then
+            ActiveNotifLabels[TextLabel] = nil -- Удаляем при уничтожении
             NotifFrame:TweenPosition(UDim2.new(1.2, 0, 0, 0), "In", "Quart", 0.3, true, function() NotifFrame:Destroy() end)
         end
     end)
 end
 
--- Главное окно меню (высота уменьшена до 250, так как убрали лишнюю кнопку)
+-- Главное окно меню
 local MainFrame = Instance.new("Frame")
 MainFrame.Size = UDim2.new(0, 240, 0, 250)
 MainFrame.Position = UDim2.new(0.1, 0, 0.1, 0)
@@ -120,7 +125,7 @@ MainFrame.ClipsDescendants = true
 MainFrame.Parent = ScreenGui
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
 
--- Шапка меню, которая НЕ скрывается
+-- Шапка меню
 local HeaderFrame = Instance.new("Frame")
 HeaderFrame.Size = UDim2.new(1, 0, 0, 35)
 HeaderFrame.BackgroundTransparency = 1
@@ -234,8 +239,15 @@ for _, color in pairs(ColorPalette) do
     cBtn.MouseButton1Click:Connect(function()
         if currentActiveKey then 
             Colors[currentActiveKey] = color
-            if currentActiveKey == "TextNotif" and ActiveLogoLabel then
-                ActiveLogoLabel.TextColor3 = color 
+            
+            -- Если меняем цвет уведомлений, мгновенно обновляем всё зависимое
+            if currentActiveKey == "TextNotif" then
+                if ActiveLogoLabel then ActiveLogoLabel.TextColor3 = color end
+                for label, _ in pairs(ActiveNotifLabels) do
+                    if label and label.Parent then
+                        label.TextColor3 = color
+                    end
+                end
             end
             ClosePicker() 
         end
@@ -281,7 +293,6 @@ local ItemButton = CreateEspControl("ESP ПРЕДМЕТОВ", "Item")
 local HidingButton = CreateEspControl("ESP УКРЫТИЙ", "Hiding")
 local NotifToggleButton = CreateEspControl("УВЕДОМЛЕНИЯ", "TextNotif")
 
--- Настраиваем стартовое состояние для кнопки уведомлений (она по дефолту ВКЛ)
 NotifToggleButton.Text = "УВЕДОМЛЕНИЯ: ВКЛ"
 NotifToggleButton.BackgroundColor3 = Color3.fromRGB(40, 150, 40)
 
@@ -297,7 +308,7 @@ local function ApplyESP(object, color, text, id)
         local label = billboard:FindFirstChildOfClass("TextLabel")
         if label then 
             label.Text = text
-            label.TextColor3 = color -- Текст теперь ТОЖЕ принимает цвет из палитры объекта!
+            label.TextColor3 = color 
         end
         highlight.FillColor = color
         return 
@@ -322,7 +333,7 @@ local function ApplyESP(object, color, text, id)
     label.Size = UDim2.new(1, 0, 1, 0)
     label.BackgroundTransparency = 1
     label.Text = text
-    label.TextColor3 = color -- Привязываем цвет текста к цвету обводки
+    label.TextColor3 = color 
     label.Font = Enum.Font.SourceSansBold
     label.TextSize = 15
     label.Parent = bGui
@@ -468,4 +479,4 @@ ItemButton.MouseButton1Click:Connect(function() ToggleState(ItemButton, "ItemEsp
 HidingButton.MouseButton1Click:Connect(function() ToggleState(HidingButton, "HidingEspEnabled", "ESP УКРЫТИЙ: ВКЛ", "ESP УКРЫТИЙ: ВЫКЛ") end)
 NotifToggleButton.MouseButton1Click:Connect(function() ToggleState(NotifToggleButton, "NotificationsEnabled", "УВЕДОМЛЕНИЯ: ВКЛ", "УВЕДОМЛЕНИЯ: ВЫКЛ") end)
 
-CustomNotify("SYSTEM", "Ocel-hub v12.0 полностью настроен!")
+CustomNotify("SYSTEM", "Ocel-hub v12.1 полностью готов!")
