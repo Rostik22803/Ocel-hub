@@ -480,103 +480,137 @@ ItemButton.MouseButton1Click:Connect(function() ToggleState(ItemButton, "ItemEsp
 HidingButton.MouseButton1Click:Connect(function() ToggleState(HidingButton, "HidingEspEnabled", "ESP УКРЫТИЙ: ВКЛ", "ESP УКРЫТИЙ: ВЫКЛ") end)
 NotifToggleButton.MouseButton1Click:Connect(function() ToggleState(NotifToggleButton, "NotificationsEnabled", "УВЕДОМЛЕНИЯ: ВКЛ", "УВЕДОМЛЕНИЯ: ВЫКЛ") end)
 
-CustomNotify("SYSTEM", "Ocel-hub v12.3 успешно запущен!")UIListLayout.Parent = ScrollingFrame
-UIListLayout.Padding = UDim.new(0, 6)
-UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+-- =============================================================================
+-- 5. INSTANT INTERACT
+-- =============================================================================
+_G.InstantInteract = false
 
--- =============================================================================
--- FORCE INSTANT INTERACT (Цикл принудительного сброса)
--- =============================================================================
-task.spawn(function()
-    while task.wait(0.1) do
-        if _G.InstantInteract then
-            for _, obj in pairs(workspace:GetDescendants()) do
-                if obj:IsA("ProximityPrompt") then
-                    if obj.HoldDuration ~= 0 then
-                        obj.HoldDuration = 0
-                    end
-                end
-            end
-        end
-    end
-end)
-
--- =============================================================================
--- ФУНКЦИЯ СОЗДАНИЯ КНОПОК
--- =============================================================================
-local function CreateToggle(name, varName)
-    local Btn = Instance.new("TextButton")
-    Btn.Size = UDim2.new(0, 210, 0, 36)
-    Btn.BackgroundColor3 = Color3.fromRGB(150, 40, 40)
-    Btn.Text = name .. ": ВЫКЛ"
-    Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Btn.Font = Enum.Font.SourceSansBold
-    Btn.TextSize = 13
-    Btn.Parent = ScrollingFrame
-    Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 6)
-    
-    Btn.MouseButton1Click:Connect(function()
-        _G[varName] = not _G[varName]
-        if _G[varName] then
-            Btn.Text = name .. ": ВКЛ"
-            Btn.BackgroundColor3 = Color3.fromRGB(40, 150, 40)
-        else
-            Btn.Text = name .. ": ВЫКЛ"
-            Btn.BackgroundColor3 = Color3.fromRGB(150, 40, 40)
-        end
-    end)
-end
-
--- Создаем кнопки меню
-CreateToggle("ESP ДВЕРЕЙ", "DoorEspEnabled")
-CreateToggle("ESP МОНСТРОВ", "MonsterEspEnabled")
-CreateToggle("ESP ПРЕДМЕТОВ", "ItemEspEnabled")
-CreateToggle("ESP УКРЫТИЙ", "HidingEspEnabled")
-CreateToggle("Instant Interact", "InstantInteract")
--- =============================================================================
--- INSTANT INTERACT LOGIC
--- =============================================================================
-local function SetInteractSpeed(enabled)
+local function SetInstantInteract(enabled)
     for _, obj in pairs(workspace:GetDescendants()) do
         if obj:IsA("ProximityPrompt") then
-            obj.HoldDuration = enabled and 0 or 0.5 -- 0.5 стандарт для большинства дверей
+            obj.HoldDuration = enabled and 0 or nil
         end
     end
 end
 
--- Следим за новыми комнатами/объектами
+-- Следим за новыми ProximityPrompt объектами
 workspace.DescendantAdded:Connect(function(desc)
     if desc:IsA("ProximityPrompt") and _G.InstantInteract then
         desc.HoldDuration = 0
     end
 end)
 
+-- Создаём кнопку Instant Interact в меню (такой же стиль как ESP кнопки)
+local InstantInteractRow = Instance.new("Frame")
+InstantInteractRow.Size = UDim2.new(0, 220, 0, 36)
+InstantInteractRow.BackgroundTransparency = 1
+InstantInteractRow.Parent = ButtonContainer
+
+local InstantInteractBtn = Instance.new("TextButton")
+InstantInteractBtn.Size = UDim2.new(0, 220, 0, 36)
+InstantInteractBtn.BackgroundColor3 = Color3.fromRGB(150, 40, 40)
+InstantInteractBtn.Text = "⚡ INSTANT INTERACT: ВЫКЛ"
+InstantInteractBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+InstantInteractBtn.Font = Enum.Font.SourceSansBold
+InstantInteractBtn.TextSize = 13
+InstantInteractBtn.Parent = InstantInteractRow
+Instance.new("UICorner", InstantInteractBtn).CornerRadius = UDim.new(0, 6)
+
+InstantInteractBtn.MouseButton1Click:Connect(function()
+    _G.InstantInteract = not _G.InstantInteract
+    if _G.InstantInteract then
+        InstantInteractBtn.Text = "⚡ INSTANT INTERACT: ВКЛ"
+        InstantInteractBtn.BackgroundColor3 = Color3.fromRGB(40, 150, 40)
+        SetInstantInteract(true)
+        CustomNotify("⚡ Instant Interact", "Мгновенное взаимодействие включено")
+    else
+        InstantInteractBtn.Text = "⚡ INSTANT INTERACT: ВЫКЛ"
+        InstantInteractBtn.BackgroundColor3 = Color3.fromRGB(150, 40, 40)
+        SetInstantInteract(false)
+        CustomNotify("⚡ Instant Interact", "Мгновенное взаимодействие выключено")
+    end
+end)
+
 -- =============================================================================
--- КНОПКИ
+-- 6. АНТИ-СУЩЕСТВА (Anti-Entity)
 -- =============================================================================
-local function CreateToggle(name, varName)
-    local Btn = Instance.new("TextButton")
-    Btn.Size = UDim2.new(0, 210, 0, 36)
-    Btn.BackgroundColor3 = Color3.fromRGB(150, 40, 40)
-    Btn.Text = name .. ": ВЫКЛ"
-    Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Btn.Font = Enum.Font.SourceSansBold
-    Btn.TextSize = 13
-    Btn.Parent = ScrollingFrame
-    Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 6)
-    
-    Btn.MouseButton1Click:Connect(function()
-        _G[varName] = not _G[varName]
-        if _G[varName] then
-            Btn.Text = name .. ": ВКЛ"
-            Btn.BackgroundColor3 = Color3.fromRGB(40, 150, 40)
-            if varName == "InstantInteract" then SetInteractSpeed(true) end
-        else
-            Btn.Text = name .. ": ВЫКЛ"
-            Btn.BackgroundColor3 = Color3.fromRGB(150, 40, 40)
-            if varName == "InstantInteract" then SetInteractSpeed(false) end
+_G.AntiEntityEnabled = false
+
+-- Существа которых нужно удалять (те же что в MonsterNames + дополнительные)
+local AntiEntityList = {
+    "RushMoving", "AmbushMoving", "Eyes", "SeekMoving", "Figure",
+    "A60", "A120", "GiggleCeiling", "Grumble", "Halt", "Snare",
+    "Timothy", "Jack", "Void", "Glitch", "Screech"
+}
+
+local antiEntityConnection = nil
+
+local function RemoveAllEntities()
+    for _, name in pairs(AntiEntityList) do
+        local entity = workspace:FindFirstChild(name)
+        if entity then
+            pcall(function() entity:Destroy() end)
+        end
+    end
+end
+
+local function EnableAntiEntity()
+    -- Сразу удаляем всех существующих монстров
+    RemoveAllEntities()
+    -- Вешаем слушатель на появление новых
+    antiEntityConnection = workspace.ChildAdded:Connect(function(child)
+        if _G.AntiEntityEnabled then
+            for _, name in pairs(AntiEntityList) do
+                if child.Name == name then
+                    pcall(function() child:Destroy() end)
+                    CustomNotify("🛡️ Анти-существа", MonsterNames[child.Name] and (MonsterNames[child.Name] .. " уничтожен") or (child.Name .. " уничтожен"))
+                    break
+                end
+            end
         end
     end)
 end
 
-CreateToggle("Instant Interact", "InstantInteract")
+local function DisableAntiEntity()
+    if antiEntityConnection then
+        antiEntityConnection:Disconnect()
+        antiEntityConnection = nil
+    end
+end
+
+-- Кнопка Анти-существа
+local AntiEntityRow = Instance.new("Frame")
+AntiEntityRow.Size = UDim2.new(0, 220, 0, 36)
+AntiEntityRow.BackgroundTransparency = 1
+AntiEntityRow.Parent = ButtonContainer
+
+local AntiEntityBtn = Instance.new("TextButton")
+AntiEntityBtn.Size = UDim2.new(0, 220, 0, 36)
+AntiEntityBtn.BackgroundColor3 = Color3.fromRGB(150, 40, 40)
+AntiEntityBtn.Text = "🛡️ АНТИ-СУЩЕСТВА: ВЫКЛ"
+AntiEntityBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+AntiEntityBtn.Font = Enum.Font.SourceSansBold
+AntiEntityBtn.TextSize = 13
+AntiEntityBtn.Parent = AntiEntityRow
+Instance.new("UICorner", AntiEntityBtn).CornerRadius = UDim.new(0, 6)
+
+AntiEntityBtn.MouseButton1Click:Connect(function()
+    _G.AntiEntityEnabled = not _G.AntiEntityEnabled
+    if _G.AntiEntityEnabled then
+        AntiEntityBtn.Text = "🛡️ АНТИ-СУЩЕСТВА: ВКЛ"
+        AntiEntityBtn.BackgroundColor3 = Color3.fromRGB(40, 150, 40)
+        EnableAntiEntity()
+        CustomNotify("🛡️ Анти-существа", "Существа будут уничтожаться автоматически")
+    else
+        AntiEntityBtn.Text = "🛡️ АНТИ-СУЩЕСТВА: ВЫКЛ"
+        AntiEntityBtn.BackgroundColor3 = Color3.fromRGB(150, 40, 40)
+        DisableAntiEntity()
+        CustomNotify("🛡️ Анти-существа", "Защита от существ отключена")
+    end
+end)
+
+-- Увеличиваем высоту MainFrame и ButtonContainer под все кнопки
+MainFrame.Size = UDim2.new(0, 240, 0, 340)
+ButtonContainer.Size = UDim2.new(0, 240, 0, 300)
+
+CustomNotify("SYSTEM", "Ocel-hub v12.3 успешно запущен!")
