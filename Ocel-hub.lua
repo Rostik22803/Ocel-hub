@@ -1,18 +1,16 @@
 -- =============================================================================
--- DOORS LOCAL MEGA HUB v16.0 (ABSOLUTE CLIENT DEFUSE)
+-- DOORS LOCAL MEGA HUB v17.0 (PHYSICAL ENGINE DEFUSE)
 -- =============================================================================
 
 local oldGui = game:GetService("CoreGui"):FindFirstChild("DoorsLocalMegaHubFinal")
 if oldGui then oldGui:Destroy() end
 
--- Глобальные настройки
+-- Глобальные переключатели
 _G.DoorEspEnabled = false
 _G.MonsterEspEnabled = false
 _G.ItemEspEnabled = false
 _G.HidingEspEnabled = false
-_G.NotificationsEnabled = true 
 
--- Стопроцентные тумблеры (Клиентские)
 _G.AntiA90 = false
 _G.AntiScreech = false
 _G.AntiSnare = false
@@ -22,19 +20,257 @@ _G.AntiEyes = false
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local ContextActionService = game:GetService("ContextActionService")
 
--- Цвета обводок и кастомного текста
-local Colors = {
-    Door = Color3.fromRGB(0, 255, 100),     
-    Monster = Color3.fromRGB(255, 50, 50),  
-    Item = Color3.fromRGB(255, 200, 0),     
-    Hiding = Color3.fromRGB(0, 180, 255),
-    TextNotif = Color3.fromRGB(240, 240, 240),
-    AntiA90 = Color3.fromRGB(255, 0, 128),
-    AntiScreech = Color3.fromRGB(170, 0, 255),
-    AntiSnare = Color3.fromRGB(0, 255, 150),
-    AntiTimothy = Color3.fromRGB(255, 100, 0),
-    AntiGiggle = Color3.fromRGB(0, 150, 255),
+local MonsterNames = {
+    ["RushMoving"] = "Раш 🏃‍♂️", ["AmbushMoving"] = "Амбуш ⚡", ["Eyes"] = "Глаза 👀",
+    ["SeekMoving"] = "Сик 👁️", ["Figure"] = "Фигура 👤", ["A60"] = "A-60 🔴",
+    ["A120"] = "A-120 ⭕", ["GiggleCeiling"] = "Гиггл 💢", ["Grumble"] = "Грамбл 👾"
+}
+
+-- =============================================================================
+-- ЯДРО ФИЗИЧЕСКОГО ОБХОДА (Прямое влияние на персонажа)
+-- =============================================================================
+
+-- 1. Сверхстабильный Анти-А90 (Полный фриз инпутов и физического тела)
+task.spawn(function()
+    while true do
+        task.wait()
+        if _G.AntiA90 then
+            local a90Gui = LocalPlayer.PlayerGui:FindFirstChild("A90") or game:GetService("CoreGui"):FindFirstChild("A90")
+            if a90Gui and a90Gui.Enabled then
+                -- Полностью перекрываем управление, чтобы движок не затрекал сдвиг мыши или клик
+                ContextActionService:BindAction("BlockPack", function() return Enum.ContextActionResult.Sink end, false, unpack(Enum.PlayerActions:GetEnumItems()))
+                
+                local char = LocalPlayer.Character
+                if char then
+                    local root = char:FindFirstChild("HumanoidRootPart")
+                    local hum = char:FindFirstChildOfClass("Humanoid")
+                    if root and hum then
+                        while a90Gui and a90Gui.Enabled and _G.AntiA90 do
+                            root.Velocity = Vector3.new(0, 0, 0)
+                            root.RotVelocity = Vector3.new(0, 0, 0)
+                            hum:Move(Vector3.new(0,0,0))
+                            task.wait()
+                        end
+                    end
+                end
+                ContextActionService:UnbindAction("BlockPack")
+            end
+        end
+    end
+end)
+
+-- 2. Физический NoSnare (Капканы) + Анти-Скрич / Гиггл дефузер
+RunService.Stepped:Connect(function()
+    local char = LocalPlayer.Character
+    if not char then return end
+    
+    -- Капканы: просто убираем коллизию нижних конечностей персонажа с полом Greenhouse
+    if _G.AntiSnare then
+        for _, part in pairs(char:GetChildren()) do
+            if part:IsA("BasePart") and (part.Name == "LeftLeg" or part.Name == "RightLeg" or part.Name == "Left Foot" or part.Name == "Right Foot") then
+                part.CanCollide = false
+            end
+        end
+    end
+    
+    -- Скрич / Гиггл: Мгновенный сброс атаки, если сущность пытается зацепиться за голову
+    if _G.AntiScreech or _G.AntiGiggle then
+        local head = char:FindFirstChild("Head")
+        if head then
+            for _, child in pairs(head:GetChildren()) do
+                if (_G.AntiScreech and child.Name == "Screech") or (_G.AntiGiggle and child.Name == "Giggle") then
+                    child:Destroy() -- Стираем самого эмиттера до начала фазы укуса
+                end
+            end
+        end
+    end
+end)
+
+-- 3. Анти-Глаза (Разворот камеры на уровне CFrame во время рендера сцены)
+RunService.RenderStepped:Connect(function()
+    if _G.AntiEyes and workspace:FindFirstChild("Eyes") then
+        local camera = workspace.CurrentCamera
+        local eyes = workspace:FindFirstChild("Eyes")
+        if eyes and camera then
+            local core = eyes:FindFirstChild("Core") or eyes:FindFirstChildOfClass("BasePart")
+            if core then
+                -- Если мы теоретически смотрим на Глаза, скрипт мгновенно смещает вектор взгляда камеры на 180 градусов
+                local dir = (core.Position - camera.CFrame.Position).Unit
+                local look = camera.CFrame.LookVector
+                if dir:Dot(look) > 0.1 then -- Проверка: смотрим ли мы на монстра
+                    camera.CFrame = CFrame.new(camera.CFrame.Position, camera.CFrame.Position - dir)
+                end
+            end
+        end
+    end
+end)
+
+-- 4. Стопроцентный Клиентский Анти-Тимоти (Убираем из UI-скриптов ящиков)
+workspace.DescendantAdded:Connect(function(descendant)
+    if _G.AntiTimothy and descendant.Name == "Timothy" then
+        descendant:Destroy()
+    end
+end)
+
+-- =============================================================================
+-- ИНТЕРФЕЙС GUI
+-- =============================================================================
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "DoorsLocalMegaHubFinal"
+ScreenGui.Parent = game:GetService("CoreGui")
+ScreenGui.ResetOnSpawn = false
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 230, 0, 360)
+MainFrame.Position = UDim2.new(0.1, 0, 0.1, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(28, 28, 28)
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
+
+local ScrollingFrame = Instance.new("ScrollingFrame")
+ScrollingFrame.Size = UDim2.new(1, 0, 1, -10)
+ScrollingFrame.Position = UDim2.new(0, 0, 0, 5)
+ScrollingFrame.BackgroundTransparency = 1
+ScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 430)
+ScrollingFrame.ScrollBarThickness = 3
+ScrollingFrame.Parent = MainFrame
+
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.Parent = ScrollingFrame
+UIListLayout.Padding = UDim.new(0, 5)
+UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+local function CreateButton(name)
+    local Btn = Instance.new("TextButton")
+    Btn.Size = UDim2.new(0, 200, 0, 32)
+    Btn.BackgroundColor3 = Color3.fromRGB(140, 35, 35)
+    Btn.Text = name .. ": ВЫКЛ"
+    Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Btn.Font = Enum.Font.SourceSansBold
+    Btn.TextSize = 13
+    Btn.Parent = ScrollingFrame
+    Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 5)
+    return Btn
+end
+
+local DoorButton = CreateButton("ESP ДВЕРЕЙ")
+local MonsterButton = CreateButton("ESP МОНСТРОВ")
+local ItemButton = CreateButton("ESP ПРЕДМЕТОВ")
+local HidingButton = CreateButton("ESP УКРЫТИЙ")
+
+local EyesButton = CreateButton("АНТИ ГЛАЗА (ФИЗИК)")
+local A90Button = CreateButton("АНТИ А-90 (ФРИЗ)")
+local ScreechButton = CreateButton("АНТИ СКРИЧ (КЛИЕНТ)")
+local SnareButton = CreateButton("АНТИ КАПКАН (NO-COLLIDE)")
+local TimothyButton = CreateButton("АНТИ ТИМОТИ (ОЧИСТКА)")
+local GiggleButton = CreateButton("АНТИ ГИГГЛ (КЛИЕНТ)")
+
+-- =============================================================================
+-- ENGINE ESP
+-- =============================================================================
+local function ApplyESP(object, color, text, id)
+    if not object or object:FindFirstChild("LocalText_" .. id) then return end
+    
+    local highlightInstance = Instance.new("Highlight")
+    highlightInstance.Name = "LocalHighlight_" .. id
+    highlightInstance.FillColor = color
+    highlightInstance.FillTransparency = 0.5
+    highlightInstance.OutlineColor = Color3.new(1,1,1)
+    highlightInstance.Adornee = object
+    highlightInstance.Parent = object
+    
+    local bGui = Instance.new("BillboardGui")
+    bGui.Name = "LocalText_" .. id
+    bGui.Size = UDim2.new(0, 140, 0, 30)
+    bGui.AlwaysOnTop = true
+    bGui.StudsOffset = Vector3.new(0, 2, 0)
+    bGui.Parent = object
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 1, 0)
+    label.BackgroundTransparency = 1
+    label.Text = text
+    label.TextColor3 = color 
+    label.Font = Enum.Font.SourceSansBold
+    label.TextSize = 14
+    label.Parent = bGui
+end
+
+local function RemoveESP(object, id)
+    if not object then return end
+    local hl = object:FindFirstChild("LocalHighlight_" .. id)
+    local bb = object:FindFirstChild("LocalText_" .. id)
+    if hl then hl:Destroy() end
+    if bb then bb:Destroy() end
+end
+
+task.spawn(function()
+    while task.wait(0.5) do
+        pcall(function()
+            local rooms = workspace:FindFirstChild("CurrentRooms")
+            if rooms then
+                for _, room in pairs(rooms:GetChildren()) do
+                    local door = room:FindFirstChild("Door")
+                    if door and _G.DoorEspEnabled then
+                        ApplyESP(door:FindFirstChild("Door") or door, Color3.fromRGB(0, 255, 100), "🚪 Дверь " .. room.Name, "Door")
+                    else
+                        RemoveESP(door:FindFirstChild("Door") or door, "Door")
+                    end
+                    
+                    if _G.ItemEspEnabled or _G.HidingEspEnabled then
+                        for _, asset in pairs(room:GetDescendants()) do
+                            if _G.ItemEspEnabled and (asset.Name == "KeyObtain" or asset.Name == "LeverForGate") then
+                                ApplyESP(asset, Color3.fromRGB(255, 200, 0), "⭐ Квест", "Item")
+                            elseif _G.HidingEspEnabled and (asset.Name == "Wardrobe" or asset.Name == "Bed") then
+                                ApplyESP(asset, Color3.fromRGB(0, 180, 255), "🛏️ Укрытие", "Hiding")
+                            end
+                        end
+                    end
+                end
+            end
+            
+            if _G.MonsterEspEnabled then
+                for _, child in pairs(workspace:GetChildren()) do
+                    if MonsterNames[child.Name] then ApplyESP(child, Color3.fromRGB(255, 50, 50), MonsterNames[child.Name], "Monster") end
+                end
+            else
+                for _, child in pairs(workspace:GetChildren()) do RemoveESP(child, "Monster") end
+            end
+        end)
+    end
+end)
+
+-- Управление
+local function SetupToggle(btn, varName)
+    btn.MouseButton1Click:Connect(function()
+        _G[varName] = not _G[varName]
+        local baseText = string.split(btn.Text, ":")[1]
+        if _G[varName] then
+            btn.Text = baseText .. ": ВКЛ"
+            btn.BackgroundColor3 = Color3.fromRGB(35, 130, 35)
+        else
+            btn.Text = baseText .. ": ВЫКЛ"
+            btn.BackgroundColor3 = Color3.fromRGB(140, 35, 35)
+        end
+    end)
+end
+
+SetupToggle(DoorButton, "DoorEspEnabled")
+SetupToggle(MonsterButton, "MonsterEspEnabled")
+SetupToggle(ItemButton, "ItemEspEnabled")
+SetupToggle(HidingButton, "HidingEspEnabled")
+
+SetupToggle(EyesButton, "AntiEyes")
+SetupToggle(A90Button, "AntiA90")
+SetupToggle(ScreechButton, "AntiScreech")
+SetupToggle(SnareButton, "AntiSnare")
+SetupToggle(TimothyButton, "AntiTimothy")
+SetupToggle(GiggleButton, "AntiGiggle")    AntiGiggle = Color3.fromRGB(0, 150, 255),
     AntiEyes = Color3.fromRGB(0, 255, 255)
 }
 
