@@ -1,11 +1,10 @@
 -- =============================================================================
--- DOORS LOCAL MEGA HUB v17.0 (PHYSICAL ENGINE DEFUSE)
+-- DOORS LOCAL MEGA HUB v18.0 (HARDCORE HITBOX DESYNC)
 -- =============================================================================
 
 local oldGui = game:GetService("CoreGui"):FindFirstChild("DoorsLocalMegaHubFinal")
 if oldGui then oldGui:Destroy() end
 
--- Глобальные переключатели
 _G.DoorEspEnabled = false
 _G.MonsterEspEnabled = false
 _G.ItemEspEnabled = false
@@ -21,20 +20,177 @@ _G.AntiEyes = false
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
-local ContextActionService = game:GetService("ContextActionService")
 
-local MonsterNames = {
-    ["RushMoving"] = "Раш 🏃‍♂️", ["AmbushMoving"] = "Амбуш ⚡", ["Eyes"] = "Глаза 👀",
-    ["SeekMoving"] = "Сик 👁️", ["Figure"] = "Фигура 👤", ["A60"] = "A-60 🔴",
-    ["A120"] = "A-120 ⭕", ["GiggleCeiling"] = "Гиггл 💢", ["Grumble"] = "Грамбл 👾"
-}
+-- Создаем невидимый щит для блокировки Raycast (Защита от Глаз)
+local EyeShield = Instance.new("Part")
+EyeShield.Name = "ClientEyeShield"
+EyeShield.Size = Vector3.new(20, 20, 0.1)
+EyeShield.Transparency = 1
+EyeShield.CanCollide = false
+EyeShield.Anchored = true
+EyeShield.Parent = workspace
 
 -- =============================================================================
--- ЯДРО ФИЗИЧЕСКОГО ОБХОДА (Прямое влияние на персонажа)
+-- HARDCORE DEFUSE ENGINE
 -- =============================================================================
 
--- 1. Сверхстабильный Анти-А90 (Полный фриз инпутов и физического тела)
+RunService.Heartbeat:Connect(function()
+    local char = LocalPlayer.Character
+    if not char then return end
+    local head = char:FindFirstChild("Head")
+    local root = char:FindFirstChild("HumanoidRootPart")
+    
+    -- 1. Сверхстабильный Анти-Eyes через физический щит перед камерой
+    if _G.AntiEyes and workspace:FindFirstChild("Eyes") then
+        local eyes = workspace:FindFirstChild("Eyes")
+        local core = eyes:FindFirstChild("Core") or eyes:FindFirstChildOfClass("BasePart")
+        if core and head then
+            -- Ставим щит ровно между головой игрока и Глазами, блокируя Raycast урона
+            EyeShield.CFrame = CFrame.new(head.Position, core.Position) * CFrame.new(0, 0, -2)
+        end
+    else
+        EyeShield.CFrame = CFrame.new(0, -999, 0)
+    end
+
+    -- 2. Десинхрон хитбокса против Скрича и Гиггла
+    if (_G.AntiScreech or _G.AntiGiggle) and head then
+        for _, v in pairs(head:GetChildren()) do
+            if v:IsA("Attachment") or v:IsA("VectorForce") then
+                -- Ломаем привязку прыгающих сущностей к костям персонажа
+                if (_G.AntiScreech and string.find(v.Name, "Screech")) or (_G.AntiGiggle and string.find(v.Name, "Giggle")) then
+                    v:Destroy()
+                end
+            end
+        end
+    end
+    
+    -- 3. Анти-А90 через прерывание обработки ввода
+    if _G.AntiA90 then
+        local a90 = LocalPlayer.PlayerGui:FindFirstChild("A90")
+        if a90 and a90.Enabled then
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum and root then
+                -- Принудительный аппаратный стоп кадра позиции
+                root.Anchored = true
+                hum.PlatformStand = true
+                task.wait(0.1)
+                while a90 and a90.Enabled do
+                    task.wait()
+                end
+                root.Anchored = false
+                hum.PlatformStand = false
+            end
+        end
+    end
+end)
+
+-- 4. Векторный No-Touch для Капканов (Snare)
+local function ModernSnareBypass(child)
+    if _G.AntiSnare and child.Name == "Snare" then
+        task.spawn(function()
+            -- Вырезаем триггер фиксации наступания персонажа
+            local touch = child:FindFirstChildOfClass("TouchTransmitter")
+            if touch then touch:Destroy() end
+            for _, part in pairs(child:GetDescendants()) do
+                if part:IsA("BasePart") then 
+                    part.CanCollide = false 
+                    part.Size = Vector3.new(0,0,0)
+                end
+            end
+        end)
+    end
+end
+workspace.ChildAdded:Connect(ModernSnareBypass)
+if workspace:FindFirstChild("CurrentRooms") then
+    workspace.CurrentRooms.DescendantAdded:Connect(ModernSnareBypass)
+end
+
+-- 5. Защита от Тимоти (Мгновенный килл эвента при открытии ящика)
+LocalPlayer.PlayerGui.DescendantAdded:Connect(function(desc)
+    if _G.AntiTimothy and (desc.Name == "SpiderJumpscare" or desc.Name == "TimothyGui") then
+        desc:Destroy()
+    end
+end)
+
+-- =============================================================================
+-- УПРОЩЕННЫЙ МИНИМАЛИСТИЧНЫЙ ИНТЕРФЕЙС
+-- =============================================================================
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "DoorsLocalMegaHubFinal"
+ScreenGui.Parent = game:GetService("CoreGui")
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 220, 0, 320)
+MainFrame.Position = UDim2.new(0.05, 0, 0.1, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 6)
+
+local ScrollingFrame = Instance.new("ScrollingFrame")
+ScrollingFrame.Size = UDim2.new(1, 0, 1, -10)
+ScrollingFrame.Position = UDim2.new(0, 0, 0, 5)
+ScrollingFrame.BackgroundTransparency = 1
+ScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 380)
+ScrollingFrame.ScrollBarThickness = 2
+ScrollingFrame.Parent = MainFrame
+
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.Parent = ScrollingFrame
+UIListLayout.Padding = UDim.new(0, 5)
+UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+local function CreateBtn(name, varName)
+    local Btn = Instance.new("TextButton")
+    Btn.Size = UDim2.new(0, 190, 0, 30)
+    Btn.BackgroundColor3 = Color3.fromRGB(130, 30, 30)
+    Btn.Text = name .. ": ВЫКЛ"
+    Btn.TextColor3 = Color3.new(1, 1, 1)
+    Btn.Font = Enum.Font.SourceSansBold
+    Btn.TextSize = 12
+    Btn.Parent = ScrollingFrame
+    Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 4)
+    
+    Btn.MouseButton1Click:Connect(function()
+        _G[varName] = not _G[varName]
+        if _G[varName] then
+            Btn.Text = name .. ": ВКЛ"
+            Btn.BackgroundColor3 = Color3.fromRGB(30, 120, 30)
+        else
+            Btn.Text = name .. ": ВЫКЛ"
+            Btn.BackgroundColor3 = Color3.fromRGB(130, 30, 30)
+        end
+    end)
+end
+
+CreateBtn("ESP ДВЕРЕЙ", "DoorEspEnabled")
+CreateBtn("ESP МОНСТРОВ", "MonsterEspEnabled")
+CreateBtn("АНТИ ГЛАЗА (ЩИТ)", "AntiEyes")
+CreateBtn("АНТИ А-90 (ХАРД ФРИЗ)", "AntiA90")
+CreateBtn("АНТИ СКРИЧ (ДЕСИНХРОН)", "AntiScreech")
+CreateBtn("АНТИ КАПКАН (NO-TOUCH)", "AntiSnare")
+CreateBtn("АНТИ ТИМОТИ (GUI BLOCK)", "AntiTimothy")
+CreateBtn("АНТИ ГИГГЛ (ОЧИСТКА)", "AntiGiggle")
+
+-- Базовый ESP движок для проверки комнат
 task.spawn(function()
+    while task.wait(0.5) do
+        pcall(function()
+            if _G.DoorEspEnabled and workspace:FindFirstChild("CurrentRooms") then
+                for _, room in pairs(workspace.CurrentRooms:GetChildren()) do
+                    local door = room:FindFirstChild("Door")
+                    if door and not door:FindFirstChild("ESP") then
+                        local h = Instance.new("Highlight", door)
+                        h.Name = "ESP"
+                        h.FillColor = Color3.new(0,1,0)
+                        h.FillTransparency = 0.6
+                    end
+                end
+            end
+        end)
+    end
+end)task.spawn(function()
     while true do
         task.wait()
         if _G.AntiA90 then
