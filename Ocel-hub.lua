@@ -10,7 +10,8 @@ _G.DoorEspEnabled = false
 _G.MonsterEspEnabled = false
 _G.ItemEspEnabled = false
 _G.HidingEspEnabled = false
-_G.NotificationsEnabled = true 
+_G.NotificationsEnabled = true
+_G.FullbrightEnabled = false
 
 -- Цвета обводок и кастомного текста
 local Colors = {
@@ -18,8 +19,46 @@ local Colors = {
     Monster = Color3.fromRGB(255, 50, 50),  
     Item = Color3.fromRGB(255, 200, 0),     
     Hiding = Color3.fromRGB(0, 180, 255),
-    TextNotif = Color3.fromRGB(240, 240, 240) 
+    TextNotif = Color3.fromRGB(240, 240, 240),
+    Fullbright = Color3.fromRGB(255, 255, 255)
 }
+
+-- Фуллбрайт: освещение
+local DefaultLighting = {
+    Ambient = game:GetService("Lighting").Ambient,
+    OutdoorAmbient = game:GetService("Lighting").OutdoorAmbient,
+    Brightness = game:GetService("Lighting").Brightness,
+    ClockTime = game:GetService("Lighting").ClockTime,
+    FogEnd = game:GetService("Lighting").FogEnd,
+    GlobalShadows = game:GetService("Lighting").GlobalShadows,
+}
+
+local function ApplyFullbright(enabled)
+    local Lighting = game:GetService("Lighting")
+    if enabled then
+        local c = Colors.Fullbright
+        Lighting.Ambient = c
+        Lighting.OutdoorAmbient = c
+        Lighting.Brightness = 2
+        Lighting.ClockTime = 12
+        Lighting.FogEnd = 100000
+        Lighting.GlobalShadows = false
+        -- Убираем эффекты освещения (BlurEffect, ColorCorrectionEffect и т.п.)
+        for _, fx in pairs(Lighting:GetChildren()) do
+            if fx:IsA("PostEffect") then fx.Enabled = false end
+        end
+    else
+        Lighting.Ambient = DefaultLighting.Ambient
+        Lighting.OutdoorAmbient = DefaultLighting.OutdoorAmbient
+        Lighting.Brightness = DefaultLighting.Brightness
+        Lighting.ClockTime = DefaultLighting.ClockTime
+        Lighting.FogEnd = DefaultLighting.FogEnd
+        Lighting.GlobalShadows = DefaultLighting.GlobalShadows
+        for _, fx in pairs(Lighting:GetChildren()) do
+            if fx:IsA("PostEffect") then fx.Enabled = true end
+        end
+    end
+end
 
 local ColorPalette = {
     Color3.fromRGB(0, 255, 100), Color3.fromRGB(255, 50, 50), Color3.fromRGB(255, 200, 0),
@@ -117,7 +156,7 @@ end
 
 -- Главное окно меню
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 240, 0, 250)
+MainFrame.Size = UDim2.new(0, 240, 0, 290)
 MainFrame.Position = UDim2.new(0.1, 0, 0.1, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 MainFrame.Active = true
@@ -160,7 +199,7 @@ Instance.new("UICorner", MinimizeBtn).CornerRadius = UDim.new(0, 4)
 
 -- Контейнер для кнопок
 local ButtonContainer = Instance.new("Frame")
-ButtonContainer.Size = UDim2.new(0, 240, 0, 210)
+ButtonContainer.Size = UDim2.new(0, 240, 0, 250)
 ButtonContainer.Position = UDim2.new(0, 0, 0, 35)
 ButtonContainer.BackgroundTransparency = 1
 ButtonContainer.Parent = MainFrame
@@ -206,14 +245,14 @@ local currentActiveKey = nil
 local function ClosePicker()
     currentActiveKey = nil
     PickerPanel.Visible = false
-    MainFrame:TweenSize(UDim2.new(0, 240, 0, 250), "In", "Quart", 0.25, true)
+    MainFrame:TweenSize(UDim2.new(0, 240, 0, 290), "In", "Quart", 0.25, true)
 end
 
 local function OpenPicker(colorKey)
     if currentActiveKey == colorKey then ClosePicker() else
         currentActiveKey = colorKey
         PickerPanel.Visible = true
-        MainFrame:TweenSize(UDim2.new(0, 390, 0, 250), "Out", "Quart", 0.25, true)
+        MainFrame:TweenSize(UDim2.new(0, 390, 0, 290), "Out", "Quart", 0.25, true)
     end
 end
 
@@ -227,7 +266,7 @@ MinimizeBtn.MouseButton1Click:Connect(function()
         MainFrame:TweenSize(UDim2.new(0, 240, 0, 35), "Out", "Quart", 0.25, true)
     else
         MinimizeBtn.Text = "—"
-        MainFrame:TweenSize(UDim2.new(0, 240, 0, 250), "Out", "Quart", 0.25, true)
+        MainFrame:TweenSize(UDim2.new(0, 240, 0, 290), "Out", "Quart", 0.25, true)
     end
 end)
 
@@ -249,6 +288,10 @@ for _, color in pairs(ColorPalette) do
                     if data.Title then data.Title.TextColor3 = color end
                     if data.Text then data.Text.TextColor3 = color end
                 end
+            end
+            -- Если фуллбрайт включён — сразу применяем новый цвет
+            if currentActiveKey == "Fullbright" and _G.FullbrightEnabled then
+                ApplyFullbright(true)
             end
             ClosePicker() 
         end
@@ -292,6 +335,7 @@ local DoorButton = CreateEspControl("ESP ДВЕРЕЙ", "Door")
 local MonsterButton = CreateEspControl("ESP МОНСТРОВ", "Monster")
 local ItemButton = CreateEspControl("ESP ПРЕДМЕТОВ", "Item")
 local HidingButton = CreateEspControl("ESP УКРЫТИЙ", "Hiding")
+local FullbrightButton = CreateEspControl("ФУЛЛБРАЙТ", "Fullbright")
 local NotifToggleButton = CreateEspControl("УВЕДОМЛЕНИЯ", "TextNotif")
 
 NotifToggleButton.Text = "УВЕДОМЛЕНИЯ: ВКЛ"
@@ -478,6 +522,10 @@ DoorButton.MouseButton1Click:Connect(function() ToggleState(DoorButton, "DoorEsp
 MonsterButton.MouseButton1Click:Connect(function() ToggleState(MonsterButton, "MonsterEspEnabled", "ESP МОНСТРОВ: ВКЛ", "ESP МОНСТРОВ: ВЫКЛ") end)
 ItemButton.MouseButton1Click:Connect(function() ToggleState(ItemButton, "ItemEspEnabled", "ESP ПРЕДМЕТОВ: ВКЛ", "ESP ПРЕДМЕТОВ: ВЫКЛ") end)
 HidingButton.MouseButton1Click:Connect(function() ToggleState(HidingButton, "HidingEspEnabled", "ESP УКРЫТИЙ: ВКЛ", "ESP УКРЫТИЙ: ВЫКЛ") end)
+FullbrightButton.MouseButton1Click:Connect(function()
+    ToggleState(FullbrightButton, "FullbrightEnabled", "ФУЛЛБРАЙТ: ВКЛ", "ФУЛЛБРАЙТ: ВЫКЛ")
+    ApplyFullbright(_G.FullbrightEnabled)
+end)
 NotifToggleButton.MouseButton1Click:Connect(function() ToggleState(NotifToggleButton, "NotificationsEnabled", "УВЕДОМЛЕНИЯ: ВКЛ", "УВЕДОМЛЕНИЯ: ВЫКЛ") end)
 
 CustomNotify("SYSTEM", "Ocel-hub v12.3 успешно запущен!")
