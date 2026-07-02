@@ -1,5 +1,5 @@
 -- =============================================================================
--- DOORS LOCAL MEGA HUB v12.2 (OCEL-HUB FULL CUSTOM NOTIF)
+-- DOORS LOCAL MEGA HUB v12.3 (OCEL-HUB FIXED NOTIF RE-COLOR)
 -- =============================================================================
 
 local oldGui = game:GetService("CoreGui"):FindFirstChild("DoorsLocalMegaHubFinal")
@@ -43,7 +43,7 @@ local function GetCurrentRoomNumber()
 end
 
 local ActiveLogoLabel = nil
-local ActiveNotifications = {} -- Таблица для полного динамического обновления элементов плашек
+local ActiveNotifications = {} -- Таблица для хранения ссылок на активные плашки
 
 -- =============================================================================
 -- 1. ИНТЕРФЕЙС И УВЕДОМЛЕНИЯ
@@ -75,7 +75,7 @@ local function CustomNotify(title, text)
     
     local Line = Instance.new("Frame")
     Line.Size = UDim2.new(0, 4, 1, 0)
-    Line.BackgroundColor3 = Colors.TextNotif -- Изначально красим в выбранный цвет
+    Line.BackgroundColor3 = Colors.TextNotif 
     Line.BorderSizePixel = 0
     Line.Parent = NotifFrame
 
@@ -83,7 +83,7 @@ local function CustomNotify(title, text)
     TitleLabel.Size = UDim2.new(1, -15, 0, 25)
     TitleLabel.Position = UDim2.new(0, 10, 0, 2)
     TitleLabel.Text = title
-    TitleLabel.TextColor3 = Colors.TextNotif -- Тоже зависит от палитры
+    TitleLabel.TextColor3 = Colors.TextNotif 
     TitleLabel.Font = Enum.Font.SourceSansBold
     TitleLabel.TextSize = 15
     TitleLabel.BackgroundTransparency = 1
@@ -101,16 +101,15 @@ local function CustomNotify(title, text)
     TextLabel.TextXAlignment = Enum.TextXAlignment.Left
     TextLabel.Parent = NotifFrame
     
-    -- Сохраняем ссылки на элементы для ре-колора в реальном времени
-    local notifData = {Line = Line, Title = TitleLabel, Text = TextLabel}
-    ActiveNotifications[NotifFrame] = notifData
+    -- Привязываем элементы к этой плашке
+    ActiveNotifications[NotifFrame] = {Line = Line, Title = TitleLabel, Text = TextLabel}
 
     NotifFrame.Position = UDim2.new(1, 0, 0, 0)
     NotifFrame:TweenPosition(UDim2.new(0, 0, 0, 0), "Out", "Quart", 0.3, true)
     
     task.delay(5, function()
         if NotifFrame then
-            ActiveNotifications[NotifFrame] = nil -- Чистим память
+            ActiveNotifications[NotifFrame] = nil 
             NotifFrame:TweenPosition(UDim2.new(1.2, 0, 0, 0), "In", "Quart", 0.3, true, function() NotifFrame:Destroy() end)
         end
     end)
@@ -242,7 +241,7 @@ for _, color in pairs(ColorPalette) do
         if currentActiveKey then 
             Colors[currentActiveKey] = color
             
-            -- Если меняем настройки уведомлений, перекрашиваем вообще ВСЁ «на лету»
+            -- Проверяем перекраску уведомлений по правильному ключу
             if currentActiveKey == "TextNotif" then
                 if ActiveLogoLabel then ActiveLogoLabel.TextColor3 = color end
                 for _, data in pairs(ActiveNotifications) do
@@ -481,4 +480,4 @@ ItemButton.MouseButton1Click:Connect(function() ToggleState(ItemButton, "ItemEsp
 HidingButton.MouseButton1Click:Connect(function() ToggleState(HidingButton, "HidingEspEnabled", "ESP УКРЫТИЙ: ВКЛ", "ESP УКРЫТИЙ: ВЫКЛ") end)
 NotifToggleButton.MouseButton1Click:Connect(function() ToggleState(NotifToggleButton, "NotificationsEnabled", "УВЕДОМЛЕНИЯ: ВКЛ", "УВЕДОМЛЕНИЯ: ВЫКЛ") end)
 
-CustomNotify("SYSTEM", "Ocel-hub v12.2 полностью готов к тестам!")
+CustomNotify("SYSTEM", "Ocel-hub v12.3 успешно запущен!")
