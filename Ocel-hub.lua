@@ -1,5 +1,5 @@
 -- =============================================================================
--- DOORS LOCAL MEGA HUB v9.0 (ПОЛНАЯ КАСТОМИЗАЦИЯ + СВЕРТЫВАНИЕ)
+-- DOORS LOCAL MEGA HUB v11.0 (OCEL-HUB PINNED TITLE)
 -- =============================================================================
 
 local oldGui = game:GetService("CoreGui"):FindFirstChild("DoorsLocalMegaHubFinal")
@@ -10,15 +10,15 @@ _G.DoorEspEnabled = false
 _G.MonsterEspEnabled = false
 _G.ItemEspEnabled = false
 _G.HidingEspEnabled = false
-_G.NotificationsEnabled = true -- Настройка уведомлений
+_G.NotificationsEnabled = true 
 
--- Цвета обводок и текста
+-- Цвета обводок и кастомного текста
 local Colors = {
     Door = Color3.fromRGB(0, 255, 100),     
     Monster = Color3.fromRGB(255, 50, 50),  
     Item = Color3.fromRGB(255, 200, 0),     
     Hiding = Color3.fromRGB(0, 180, 255),
-    Text = Color3.fromRGB(255, 255, 255) -- Новый настраиваемый цвет текста!
+    TextNotif = Color3.fromRGB(240, 240, 240) -- Цвет для текста уведомлений и логотипа
 }
 
 local ColorPalette = {
@@ -42,6 +42,8 @@ local function GetCurrentRoomNumber()
     return 0
 end
 
+local ActiveLogoLabel = nil
+
 -- =============================================================================
 -- 1. ИНТЕРФЕЙС И УВЕДОМЛЕНИЯ
 -- =============================================================================
@@ -61,7 +63,7 @@ NotifList.Parent = NotifContainer
 NotifList.Padding = UDim.new(0, 10)
 
 local function CustomNotify(title, text)
-    if not _G.NotificationsEnabled then return end -- Блокировка, если выключены
+    if not _G.NotificationsEnabled then return end 
     
     local NotifFrame = Instance.new("Frame")
     NotifFrame.Size = UDim2.new(1, 0, 0, 60)
@@ -90,7 +92,7 @@ local function CustomNotify(title, text)
     TextLabel.Size = UDim2.new(1, -15, 0, 30)
     TextLabel.Position = UDim2.new(0, 10, 0, 25)
     TextLabel.Text = text
-    TextLabel.TextColor3 = Color3.fromRGB(240, 240, 240)
+    TextLabel.TextColor3 = Colors.TextNotif 
     TextLabel.Font = Enum.Font.SourceSansSemibold
     TextLabel.TextSize = 14
     TextLabel.BackgroundTransparency = 1
@@ -107,7 +109,7 @@ local function CustomNotify(title, text)
     end)
 end
 
--- Главное окно меню (высота увеличена до 290, чтобы вместить новые кнопки)
+-- Главное окно меню
 local MainFrame = Instance.new("Frame")
 MainFrame.Size = UDim2.new(0, 240, 0, 290)
 MainFrame.Position = UDim2.new(0.1, 0, 0.1, 0)
@@ -118,7 +120,26 @@ MainFrame.ClipsDescendants = true
 MainFrame.Parent = ScreenGui
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
 
--- Кнопка Свернуть/Развернуть
+-- Шапка меню, которая НЕ скрывается (высота 35)
+local HeaderFrame = Instance.new("Frame")
+HeaderFrame.Size = UDim2.new(1, 0, 0, 35)
+HeaderFrame.BackgroundTransparency = 1
+HeaderFrame.Parent = MainFrame
+
+-- Надпись Ocel-hub теперь внутри HeaderFrame
+local LogoLabel = Instance.new("TextLabel")
+LogoLabel.Size = UDim2.new(0, 150, 1, 0)
+LogoLabel.Position = UDim2.new(0, 12, 0, 0)
+LogoLabel.Text = "Ocel-hub"
+LogoLabel.TextColor3 = Colors.TextNotif
+LogoLabel.Font = Enum.Font.SourceSansBold
+LogoLabel.TextSize = 16
+LogoLabel.TextXAlignment = Enum.TextXAlignment.Left
+LogoLabel.BackgroundTransparency = 1
+LogoLabel.Parent = HeaderFrame
+ActiveLogoLabel = LogoLabel
+
+-- Кнопка Свернуть/Развернуть внутри HeaderFrame
 local MinimizeBtn = Instance.new("TextButton")
 MinimizeBtn.Size = UDim2.new(0, 25, 0, 25)
 MinimizeBtn.Position = UDim2.new(1, -30, 0, 5)
@@ -128,20 +149,8 @@ MinimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 MinimizeBtn.Font = Enum.Font.SourceSansBold
 MinimizeBtn.TextSize = 14
 MinimizeBtn.ZIndex = 10
-MinimizeBtn.Parent = MainFrame
+MinimizeBtn.Parent = HeaderFrame
 Instance.new("UICorner", MinimizeBtn).CornerRadius = UDim.new(0, 4)
-
-local isMinimized = false
-MinimizeBtn.MouseButton1Click:Connect(function()
-    isMinimized = not isMinimized
-    if isMinimized then
-        MinimizeBtn.Text = "+"
-        MainFrame:TweenSize(UDim2.new(0, 240, 0, 35), "Out", "Quart", 0.25, true)
-    else
-        MinimizeBtn.Text = "—"
-        MainFrame:TweenSize(UDim2.new(0, 240, 0, 290), "Out", "Quart", 0.25, true)
-    end
-end)
 
 -- Контейнер для кнопок
 local ButtonContainer = Instance.new("Frame")
@@ -155,7 +164,7 @@ UIListLayout.Parent = ButtonContainer
 UIListLayout.Padding = UDim.new(0, 6)
 UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
--- Встроенная палитра цветов (выровнена по высоте нового меню)
+-- Встроенная палитра цветов
 local PickerPanel = Instance.new("Frame")
 PickerPanel.Size = UDim2.new(0, 135, 0, 240)
 PickerPanel.Position = UDim2.new(0, 245, 0, 40)
@@ -195,13 +204,26 @@ local function ClosePicker()
 end
 
 local function OpenPicker(colorKey)
-    if isMinimized then return end
     if currentActiveKey == colorKey then ClosePicker() else
         currentActiveKey = colorKey
         PickerPanel.Visible = true
         MainFrame:TweenSize(UDim2.new(0, 390, 0, 290), "Out", "Quart", 0.25, true)
     end
 end
+
+-- Логика кнопки Свернуть
+local isMinimized = false
+MinimizeBtn.MouseButton1Click:Connect(function()
+    isMinimized = not isMinimized
+    if isMinimized then
+        MinimizeBtn.Text = "+"
+        ClosePicker() -- Принудительно закрываем палитру при сворачивании
+        MainFrame:TweenSize(UDim2.new(0, 240, 0, 35), "Out", "Quart", 0.25, true)
+    else
+        MinimizeBtn.Text = "—"
+        MainFrame:TweenSize(UDim2.new(0, 240, 0, 290), "Out", "Quart", 0.25, true)
+    end
+end)
 
 for _, color in pairs(ColorPalette) do
     local cBtn = Instance.new("TextButton")
@@ -210,7 +232,13 @@ for _, color in pairs(ColorPalette) do
     cBtn.Parent = GridFrame
     Instance.new("UICorner", cBtn).CornerRadius = UDim.new(1, 0)
     cBtn.MouseButton1Click:Connect(function()
-        if currentActiveKey then Colors[currentActiveKey] = color; ClosePicker() end
+        if currentActiveKey then 
+            Colors[currentActiveKey] = color
+            if currentActiveKey == "TextNotif" and ActiveLogoLabel then
+                ActiveLogoLabel.TextColor3 = color 
+            end
+            ClosePicker() 
+        end
     end)
 end
 
@@ -241,7 +269,9 @@ local function CreateEspControl(name, colorKey)
     GearBtn.Parent = RowFrame
     Instance.new("UICorner", GearBtn).CornerRadius = UDim.new(0, 6)
 
-    GearBtn.MouseButton1Click:Connect(function() OpenPicker(colorKey) end)
+    GearBtn.MouseButton1Click:Connect(function() 
+        if not isMinimized then OpenPicker(colorKey) end 
+    end)
     return MainBtn
 end
 
@@ -249,7 +279,8 @@ local DoorButton = CreateEspControl("ESP ДВЕРЕЙ", "Door")
 local MonsterButton = CreateEspControl("ESP МОНСТРОВ", "Monster")
 local ItemButton = CreateEspControl("ESP ПРЕДМЕТОВ", "Item")
 local HidingButton = CreateEspControl("ESP УКРЫТИЙ", "Hiding")
-local TextColorButton = CreateEspControl("ЦВЕТ ТЕКСТА ESP", "Text")
+
+local TextColorButton = CreateEspControl("ЦВЕТ ТЕКСТА СООБЩЕНИЙ", "TextNotif")
 TextColorButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
 TextColorButton.Text = "НАСТРОИТЬ ЦВЕТ ТЕКСТА"
 
@@ -281,7 +312,7 @@ local function ApplyESP(object, color, text, id)
         local label = billboard:FindFirstChildOfClass("TextLabel")
         if label then 
             label.Text = text
-            label.TextColor3 = Colors.Text -- Динамически применяем выбранный цвет текста
+            label.TextColor3 = Color3.fromRGB(255, 255, 255) 
         end
         highlight.FillColor = color
         return 
@@ -306,7 +337,7 @@ local function ApplyESP(object, color, text, id)
     label.Size = UDim2.new(1, 0, 1, 0)
     label.BackgroundTransparency = 1
     label.Text = text
-    label.TextColor3 = Colors.Text -- Применяем кастомный цвет текста при создании
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
     label.Font = Enum.Font.SourceSansBold
     label.TextSize = 15
     label.Parent = bGui
@@ -451,9 +482,8 @@ MonsterButton.MouseButton1Click:Connect(function() ToggleState(MonsterButton, "M
 ItemButton.MouseButton1Click:Connect(function() ToggleState(ItemButton, "ItemEspEnabled", "ESP ПРЕДМЕТОВ: ВКЛ", "ESP ПРЕДМЕТОВ: ВЫКЛ") end)
 HidingButton.MouseButton1Click:Connect(function() ToggleState(HidingButton, "HidingEspEnabled", "ESP УКРЫТИЙ: ВКЛ", "ESP УКРЫТИЙ: ВЫКЛ") end)
 
--- Отдельная логика для тумблера уведомлений
 NotifToggleButton.MouseButton1Click:Connect(function()
     ToggleState(NotifToggleButton, "NotificationsEnabled", "УВЕДОМЛЕНИЯ: ВКЛ", "УВЕДОМЛЕНИЯ: ВЫКЛ")
 end)
 
-CustomNotify("SYSTEM", "Doors Mega Hub v9.0 успешно загружен!")
+CustomNotify("SYSTEM", "Ocel-hub v11.0 успешно обновлен!")
