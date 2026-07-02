@@ -30,7 +30,7 @@ local DefaultLighting = {
     OutdoorAmbient = Color3.fromRGB(70, 70, 70),
     Brightness = 1,
     ClockTime = 14,
-    FogEnd = 100000,
+    FogEnd = 10000000,
     GlobalShadows = true,
 }
 
@@ -40,9 +40,9 @@ local function ApplyFullbright(enabled)
         local c = Colors.Fullbright
         Lighting.Ambient = c
         Lighting.OutdoorAmbient = c
-        Lighting.Brightness = 5
+        Lighting.Brightness = 20
         Lighting.ClockTime = 12
-        Lighting.FogEnd = 999999
+        Lighting.FogEnd = 9999999
         Lighting.GlobalShadows = false
         for _, fx in pairs(Lighting:GetChildren()) do
             if fx:IsA("PostEffect") then fx.Enabled = false end
