@@ -26,11 +26,10 @@ local function ApplyFullbright(enabled)
     local Lighting = game:GetService("Lighting")
     if enabled then
         Lighting.Brightness = 10
-        Lighting.Ambient = Color3.fromRGB(178, 178, 178)
-        Lighting.OutdoorAmbient = Color3.fromRGB(178, 178, 178)
+        Lighting.Ambient = Colors.Fullbright
+        Lighting.OutdoorAmbient = Colors.Fullbright
         Lighting.FogEnd = 100000
         Lighting.GlobalShadows = false
-        -- Удаляем эффекты освещения (BlurEffect, ColorCorrectionEffect и т.д.)
         for _, effect in pairs(Lighting:GetChildren()) do
             if effect:IsA("BlurEffect") or effect:IsA("ColorCorrectionEffect") 
                or effect:IsA("SunRaysEffect") or effect:IsA("BloomEffect") then
@@ -43,9 +42,9 @@ local function ApplyFullbright(enabled)
         Lighting.OutdoorAmbient = OriginalLighting.OutdoorAmbient
         Lighting.FogEnd = OriginalLighting.FogEnd
         Lighting.GlobalShadows = OriginalLighting.GlobalShadows
+        -- ColorCorrectionEffect намеренно не включаем обратно — он даёт зелёный оттенок в DOORS
         for _, effect in pairs(Lighting:GetChildren()) do
-            if effect:IsA("BlurEffect") or effect:IsA("ColorCorrectionEffect") 
-               or effect:IsA("SunRaysEffect") or effect:IsA("BloomEffect") then
+            if effect:IsA("BlurEffect") or effect:IsA("SunRaysEffect") or effect:IsA("BloomEffect") then
                 effect.Enabled = true
             end
         end
@@ -58,7 +57,8 @@ local Colors = {
     Monster = Color3.fromRGB(255, 50, 50),  
     Item = Color3.fromRGB(255, 200, 0),     
     Hiding = Color3.fromRGB(0, 180, 255),
-    TextNotif = Color3.fromRGB(240, 240, 240) 
+    TextNotif = Color3.fromRGB(240, 240, 240),
+    Fullbright = Color3.fromRGB(178, 178, 178)
 }
 
 local ColorPalette = {
@@ -281,7 +281,7 @@ for _, color in pairs(ColorPalette) do
         if currentActiveKey then 
             Colors[currentActiveKey] = color
             
-            -- Проверяем перекраску уведомлений по правильному ключу
+            -- Перекраска уведомлений
             if currentActiveKey == "TextNotif" then
                 if ActiveLogoLabel then ActiveLogoLabel.TextColor3 = color end
                 for _, data in pairs(ActiveNotifications) do
@@ -289,6 +289,12 @@ for _, color in pairs(ColorPalette) do
                     if data.Title then data.Title.TextColor3 = color end
                     if data.Text then data.Text.TextColor3 = color end
                 end
+            end
+            -- Обновление освещения фуллбрайта в реальном времени
+            if currentActiveKey == "Fullbright" and _G.FullbrightEnabled then
+                local Lighting = game:GetService("Lighting")
+                Lighting.Ambient = color
+                Lighting.OutdoorAmbient = color
             end
             ClosePicker() 
         end
@@ -333,11 +339,12 @@ local MonsterButton = CreateEspControl("ESP МОНСТРОВ", "Monster")
 local ItemButton = CreateEspControl("ESP ПРЕДМЕТОВ", "Item")
 local HidingButton = CreateEspControl("ESP УКРЫТИЙ", "Hiding")
 local NotifToggleButton = CreateEspControl("УВЕДОМЛЕНИЯ", "TextNotif")
-local FullbrightButton = CreateEspControl("ФУЛЛБРАЙТ", "TextNotif")
 
 NotifToggleButton.Text = "УВЕДОМЛЕНИЯ: ВКЛ"
 NotifToggleButton.BackgroundColor3 = Color3.fromRGB(40, 150, 40)
 
+-- Кнопка фуллбрайта с шестерёнкой и палитрой
+local FullbrightButton = CreateEspControl("ФУЛЛБРАЙТ", "Fullbright")
 FullbrightButton.Text = "ФУЛЛБРАЙТ: ВЫКЛ"
 FullbrightButton.BackgroundColor3 = Color3.fromRGB(150, 40, 40)
 
