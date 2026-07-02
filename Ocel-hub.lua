@@ -609,8 +609,75 @@ AntiEntityBtn.MouseButton1Click:Connect(function()
     end
 end)
 
+-- =============================================================================
+-- 7. ФУЛБРАЙТ
+-- =============================================================================
+_G.FullbrightEnabled = false
+
+local Lighting = game:GetService("Lighting")
+
+local OriginalLighting = {
+    Brightness        = Lighting.Brightness,
+    ClockTime         = Lighting.ClockTime,
+    FogEnd            = Lighting.FogEnd,
+    FogStart          = Lighting.FogStart,
+    GlobalShadows     = Lighting.GlobalShadows,
+    Ambient           = Lighting.Ambient,
+    OutdoorAmbient    = Lighting.OutdoorAmbient,
+}
+
+local function EnableFullbright()
+    Lighting.Brightness    = 2
+    Lighting.ClockTime     = 14
+    Lighting.FogEnd        = 100000
+    Lighting.FogStart      = 100000
+    Lighting.GlobalShadows = false
+    Lighting.Ambient       = Color3.fromRGB(178, 178, 178)
+    Lighting.OutdoorAmbient = Color3.fromRGB(178, 178, 178)
+end
+
+local function DisableFullbright()
+    Lighting.Brightness    = OriginalLighting.Brightness
+    Lighting.ClockTime     = OriginalLighting.ClockTime
+    Lighting.FogEnd        = OriginalLighting.FogEnd
+    Lighting.FogStart      = OriginalLighting.FogStart
+    Lighting.GlobalShadows = OriginalLighting.GlobalShadows
+    Lighting.Ambient       = OriginalLighting.Ambient
+    Lighting.OutdoorAmbient = OriginalLighting.OutdoorAmbient
+end
+
+local FullbrightRow = Instance.new("Frame")
+FullbrightRow.Size = UDim2.new(0, 220, 0, 36)
+FullbrightRow.BackgroundTransparency = 1
+FullbrightRow.Parent = ButtonContainer
+
+local FullbrightBtn = Instance.new("TextButton")
+FullbrightBtn.Size = UDim2.new(0, 220, 0, 36)
+FullbrightBtn.BackgroundColor3 = Color3.fromRGB(150, 40, 40)
+FullbrightBtn.Text = "💡 ФУЛБРАЙТ: ВЫКЛ"
+FullbrightBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+FullbrightBtn.Font = Enum.Font.SourceSansBold
+FullbrightBtn.TextSize = 13
+FullbrightBtn.Parent = FullbrightRow
+Instance.new("UICorner", FullbrightBtn).CornerRadius = UDim.new(0, 6)
+
+FullbrightBtn.MouseButton1Click:Connect(function()
+    _G.FullbrightEnabled = not _G.FullbrightEnabled
+    if _G.FullbrightEnabled then
+        FullbrightBtn.Text = "💡 ФУЛБРАЙТ: ВКЛ"
+        FullbrightBtn.BackgroundColor3 = Color3.fromRGB(40, 150, 40)
+        EnableFullbright()
+        CustomNotify("💡 Фулбрайт", "Освещение максимальное, тени отключены")
+    else
+        FullbrightBtn.Text = "💡 ФУЛБРАЙТ: ВЫКЛ"
+        FullbrightBtn.BackgroundColor3 = Color3.fromRGB(150, 40, 40)
+        DisableFullbright()
+        CustomNotify("💡 Фулбрайт", "Освещение восстановлено")
+    end
+end)
+
 -- Увеличиваем высоту MainFrame и ButtonContainer под все кнопки
-MainFrame.Size = UDim2.new(0, 240, 0, 340)
-ButtonContainer.Size = UDim2.new(0, 240, 0, 300)
+MainFrame.Size = UDim2.new(0, 240, 0, 390)
+ButtonContainer.Size = UDim2.new(0, 240, 0, 350)
 
 CustomNotify("SYSTEM", "Ocel-hub v12.3 успешно запущен!")
