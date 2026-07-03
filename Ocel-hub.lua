@@ -12,6 +12,7 @@ _G.ItemEspEnabled = false
 _G.HidingEspEnabled = false
 _G.NotificationsEnabled = true
 _G.FullbrightEnabled = false
+_G.InstantInteract = false
 
 -- Цвета обводок и кастомного текста
 local Colors = {
@@ -179,7 +180,7 @@ end)
 
 -- Главное окно меню
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 240, 0, 330)
+MainFrame.Size = UDim2.new(0, 240, 0, 372)
 MainFrame.Position = UDim2.new(0.1, 0, 0.1, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 MainFrame.Active = true
@@ -222,7 +223,7 @@ Instance.new("UICorner", MinimizeBtn).CornerRadius = UDim.new(0, 4)
 
 -- Контейнер для кнопок
 local ButtonContainer = Instance.new("Frame")
-ButtonContainer.Size = UDim2.new(0, 240, 0, 290)
+ButtonContainer.Size = UDim2.new(0, 240, 0, 332)
 ButtonContainer.Position = UDim2.new(0, 0, 0, 35)
 ButtonContainer.BackgroundTransparency = 1
 ButtonContainer.Parent = MainFrame
@@ -268,7 +269,7 @@ local currentActiveKey = nil
 local function ClosePicker()
     currentActiveKey = nil
     PickerPanel.Visible = false
-    MainFrame:TweenSize(UDim2.new(0, 240, 0, 330), "In", "Quart", 0.25, true)
+    MainFrame:TweenSize(UDim2.new(0, 240, 0, 372), "In", "Quart", 0.25, true)
 end
 
 local function OpenPicker(colorKey)
@@ -289,7 +290,7 @@ MinimizeBtn.MouseButton1Click:Connect(function()
         MainFrame:TweenSize(UDim2.new(0, 240, 0, 35), "Out", "Quart", 0.25, true)
     else
         MinimizeBtn.Text = "—"
-        MainFrame:TweenSize(UDim2.new(0, 240, 0, 330), "Out", "Quart", 0.25, true)
+        MainFrame:TweenSize(UDim2.new(0, 240, 0, 372), "Out", "Quart", 0.25, true)
     end
 end)
 
@@ -360,9 +361,13 @@ local ItemButton = CreateEspControl("ESP ПРЕДМЕТОВ", "Item")
 local HidingButton = CreateEspControl("ESP УКРЫТИЙ", "Hiding")
 local FullbrightButton = CreateEspControl("ФУЛЛБРАЙТ", "Fullbright")
 local NotifToggleButton = CreateEspControl("УВЕДОМЛЕНИЯ", "TextNotif")
+local InteractButton = CreateEspControl("АВТО-ИНТЕРАКТ", "TextNotif")
 
 NotifToggleButton.Text = "УВЕДОМЛЕНИЯ: ВКЛ"
 NotifToggleButton.BackgroundColor3 = Color3.fromRGB(40, 150, 40)
+
+InteractButton.Text = "АВТО-ИНТЕРАКТ: ВЫКЛ"
+InteractButton.BackgroundColor3 = Color3.fromRGB(150, 40, 40)
 
 -- FOV строка
 local FovRow = Instance.new("Frame")
@@ -620,5 +625,28 @@ FullbrightButton.MouseButton1Click:Connect(function()
     ApplyFullbright(_G.FullbrightEnabled)
 end)
 NotifToggleButton.MouseButton1Click:Connect(function() ToggleState(NotifToggleButton, "NotificationsEnabled", "УВЕДОМЛЕНИЯ: ВКЛ", "УВЕДОМЛЕНИЯ: ВЫКЛ") end)
+InteractButton.MouseButton1Click:Connect(function() ToggleState(InteractButton, "InstantInteract", "АВТО-ИНТЕРАКТ: ВКЛ", "АВТО-ИНТЕРАКТ: ВЫКЛ") end)
+
+-- =============================================================================
+-- 5. АВТО-ИНТЕРАКТ (Instant Interact)
+-- =============================================================================
+task.spawn(function()
+    while task.wait(0.1) do
+        if _G.InstantInteract then
+            pcall(function()
+                for _, obj in pairs(workspace:GetDescendants()) do
+                    if obj:IsA("ProximityPrompt") then
+                        if obj.HoldDuration ~= 0 then
+                            obj.HoldDuration = 0
+                        end
+                        if obj.MaxActivationDistance < 10 then
+                            obj.MaxActivationDistance = 12
+                        end
+                    end
+                end
+            end)
+        end
+    end
+end)
 
 CustomNotify("SYSTEM", "Ocel-hub v12.3 успешно запущен!")
