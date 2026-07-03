@@ -1,5 +1,5 @@
 -- =============================================================================
--- DOORS LOCAL MEGA HUB v12.5 (PURE MINIMIZE + SPEEDHACK)
+-- DOORS LOCAL MEGA HUB v13.0 (BYPASS SPEED + SPEED ADJUSTMENT)
 -- =============================================================================
 
 local oldGui = game:GetService("CoreGui"):FindFirstChild("DoorsLocalMegaHubFinal")
@@ -11,7 +11,8 @@ _G.MonsterEspEnabled = false
 _G.ItemEspEnabled = false
 _G.HidingEspEnabled = false
 _G.ShowDistanceEnabled = false
-_G.SpeedHackEnabled = false -- Новый тумблер ускорения
+_G.SpeedHackEnabled = false
+_G.SpeedValue = 15 -- Дефолтное значение кастомного ускорения
 _G.NotificationsEnabled = true
 _G.FullbrightEnabled = false
 
@@ -174,14 +175,14 @@ game:GetService("RunService").RenderStepped:Connect(function()
     end
 end)
 
--- Главное окно меню (Высота адаптирована под кнопки)
+-- Главное окно меню (Высота увеличена для нового слайдера скорости)
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 240, 0, 410)
+MainFrame.Size = UDim2.new(0, 240, 0, 445)
 MainFrame.Position = UDim2.new(0.1, 0, 0.1, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 MainFrame.Active = true
 MainFrame.Draggable = true
-MainFrame.ClipsDescendants = true -- Обрезает контент при схлопывании меню
+MainFrame.ClipsDescendants = true 
 MainFrame.Parent = ScreenGui
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
 
@@ -218,7 +219,7 @@ local ButtonContainer = Instance.new("ScrollingFrame")
 ButtonContainer.Size = UDim2.new(1, 0, 1, -40)
 ButtonContainer.Position = UDim2.new(0, 0, 0, 35)
 ButtonContainer.BackgroundTransparency = 1
-ButtonContainer.CanvasSize = UDim2.new(0, 0, 0, 480)
+ButtonContainer.CanvasSize = UDim2.new(0, 0, 0, 520)
 ButtonContainer.ScrollBarThickness = 2
 ButtonContainer.Parent = MainFrame
 
@@ -262,18 +263,18 @@ local currentActiveKey = nil
 local function ClosePicker()
     currentActiveKey = nil
     PickerPanel.Visible = false
-    MainFrame:TweenSize(UDim2.new(0, 240, 0, 410), "In", "Quart", 0.25, true)
+    MainFrame:TweenSize(UDim2.new(0, 240, 0, 445), "In", "Quart", 0.25, true)
 end
 
 local function OpenPicker(colorKey)
     if currentActiveKey == colorKey then ClosePicker() else
         currentActiveKey = colorKey
         PickerPanel.Visible = true
-        MainFrame:TweenSize(UDim2.new(0, 390, 0, 410), "Out", "Quart", 0.25, true)
+        MainFrame:TweenSize(UDim2.new(0, 390, 0, 445), "Out", "Quart", 0.25, true)
     end
 end
 
--- ЧИСТОЕ СВЕРТЫВАНИЕ: Оставляет только аккуратную плашку заголовка
+-- СВЕРТЫВАНИЕ В ТАКУЮ ЖЕ ПОЛОСОЧКУ
 local isMinimized = false
 MinimizeBtn.MouseButton1Click:Connect(function()
     isMinimized = not isMinimized
@@ -285,7 +286,7 @@ MinimizeBtn.MouseButton1Click:Connect(function()
     else
         MinimizeBtn.Text = "—"
         task.delay(0.1, function() ButtonContainer.Visible = true end)
-        MainFrame:TweenSize(UDim2.new(0, 240, 0, 410), "Out", "Quart", 0.2)
+        MainFrame:TweenSize(UDim2.new(0, 240, 0, 445), "Out", "Quart", 0.2)
     end
 end)
 
@@ -364,13 +365,84 @@ local MonsterButton = CreateEspControl("ESP МОНСТРОВ", "Monster")
 local ItemButton = CreateEspControl("ESP ПРЕДМЕТОВ", "Item")
 local HidingButton = CreateEspControl("ESP УКРЫТИЙ", "Hiding")
 local DistanceButton = CreateSimpleButton("ДИСТАНЦИЯ ЕСП")
-local SpeedButton = CreateSimpleButton("УСКОРЕНИЕ (SPEED)") -- Новая кнопка
+local SpeedButton = CreateSimpleButton("УСКОРЕНИЕ (SPEED)")
+
+-- =============================================================================
+-- НАСТРОЙКА ИНТЕРФЕЙСА ДЛЯ СКОРОСТИ (СПИДХАК СКЛАД)
+-- =============================================================================
+local SpeedRow = Instance.new("Frame")
+SpeedRow.Size = UDim2.new(0, 220, 0, 36)
+SpeedRow.BackgroundTransparency = 1
+SpeedRow.Parent = ButtonContainer
+
+local SpeedLabel = Instance.new("TextLabel")
+SpeedLabel.Size = UDim2.new(0, 80, 1, 0)
+SpeedLabel.BackgroundTransparency = 1
+SpeedLabel.Text = "SPD: " .. _G.SpeedValue
+SpeedLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+SpeedLabel.Font = Enum.Font.SourceSansBold
+SpeedLabel.TextSize = 13
+SpeedLabel.Parent = SpeedRow
+
+local SpeedMinusBtn = Instance.new("TextButton")
+SpeedMinusBtn.Size = UDim2.new(0, 36, 0, 36)
+SpeedMinusBtn.Position = UDim2.new(0, 82, 0, 0)
+SpeedMinusBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+SpeedMinusBtn.Text = "−"
+SpeedMinusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+SpeedMinusBtn.Font = Enum.Font.SourceSansBold
+SpeedMinusBtn.TextSize = 18
+SpeedMinusBtn.Parent = SpeedRow
+Instance.new("UICorner", SpeedMinusBtn).CornerRadius = UDim.new(0, 6)
+
+local SpeedPlusBtn = Instance.new("TextButton")
+SpeedPlusBtn.Size = UDim2.new(0, 36, 0, 36)
+SpeedPlusBtn.Position = UDim2.new(0, 122, 0, 0)
+SpeedPlusBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+SpeedPlusBtn.Text = "+"
+SpeedPlusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+SpeedPlusBtn.Font = Enum.Font.SourceSansBold
+SpeedPlusBtn.TextSize = 18
+SpeedPlusBtn.Parent = SpeedRow
+Instance.new("UICorner", SpeedPlusBtn).CornerRadius = UDim.new(0, 6)
+
+local SpeedResetBtn = Instance.new("TextButton")
+SpeedResetBtn.Size = UDim2.new(0, 36, 0, 36)
+SpeedResetBtn.Position = UDim2.new(0, 162, 0, 0)
+SpeedResetBtn.BackgroundColor3 = Color3.fromRGB(40, 80, 140)
+SpeedResetBtn.Text = "↺"
+SpeedResetBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+SpeedResetBtn.Font = Enum.Font.SourceSansBold
+SpeedResetBtn.TextSize = 15
+SpeedResetBtn.Parent = SpeedRow
+Instance.new("UICorner", SpeedResetBtn).CornerRadius = UDim.new(0, 6)
+
+local function UpdateSpeedLabel()
+    SpeedLabel.Text = "SPD: " .. _G.SpeedValue
+end
+
+SpeedMinusBtn.MouseButton1Click:Connect(function()
+    _G.SpeedValue = math.max(0, _G.SpeedValue - 2)
+    UpdateSpeedLabel()
+end)
+
+SpeedPlusBtn.MouseButton1Click:Connect(function()
+    _G.SpeedValue = math.min(50, _G.SpeedValue + 2)
+    UpdateSpeedLabel()
+end)
+
+SpeedResetBtn.MouseButton1Click:Connect(function()
+    _G.SpeedValue = 15
+    UpdateSpeedLabel()
+end)
+
 local FullbrightButton = CreateEspControl("ФУЛЛБРАЙТ", "Fullbright")
 local NotifToggleButton = CreateEspControl("УВЕДОМЛЕНИЯ", "TextNotif")
 
 NotifToggleButton.Text = "УВЕДОМЛЕНИЯ: ВКЛ"
 NotifToggleButton.BackgroundColor3 = Color3.fromRGB(40, 150, 40)
 
+-- Настройки FOV
 local FovRow = Instance.new("Frame")
 FovRow.Size = UDim2.new(0, 220, 0, 36)
 FovRow.BackgroundTransparency = 1
@@ -439,17 +511,20 @@ FovResetBtn.MouseButton1Click:Connect(function()
 end)
 
 -- =============================================================================
--- 2. СТАБИЛЬНЫЙ SPEEDHACK (ОБХОД АНТИЧИТА ЧЕРЕЗ CRAMPING ДВИЖЕНИЯ)
+-- 2. СТАБИЛЬНЫЙ БАЙПАС БЕЗ ОТКАТОВ НАЗАД (ФИЗИЧЕСКИЙ ВЕКТОРНЫЙ ИМПУЛЬС)
 -- =============================================================================
-game:GetService("RunService").RenderStepped:Connect(function()
+game:GetService("RunService").Heartbeat:Connect(function()
     pcall(function()
         local player = game:GetService("Players").LocalPlayer
         if player and player.Character and _G.SpeedHackEnabled then
             local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
             local root = player.Character:FindFirstChild("HumanoidRootPart")
+            
             if humanoid and root and humanoid.MoveDirection.Magnitude > 0 then
-                -- Добавляем аккуратный контролируемый пинок к скорости
-                root.CFrame = root.CFrame + (humanoid.MoveDirection * 0.14)
+                -- Байпас античита: вместо CFrame меняем Velocity, подстраиваясь под игровую физику 
+                -- Это убирает фризы и исключает детекты резины/телепортации назад
+                local targetVelocity = humanoid.MoveDirection * _G.SpeedValue
+                root.AssemblyLinearVelocity = Vector3.new(targetVelocity.X, root.AssemblyLinearVelocity.Y, targetVelocity.Z)
             end
         end
     end)
@@ -521,7 +596,6 @@ end
 -- =============================================================================
 -- 4. ЦИКЛЫ СКАНИРОВАНИЯ И АВТО-ОЧИСТКИ
 -- =============================================================================
-
 task.spawn(function()
     while task.wait(0.3) do
         pcall(function()
@@ -651,10 +725,7 @@ MonsterButton.MouseButton1Click:Connect(function() ToggleState(MonsterButton, "M
 ItemButton.MouseButton1Click:Connect(function() ToggleState(ItemButton, "ItemEspEnabled", "ESP ПРЕДМЕТОВ: ВКЛ", "ESP ПРЕДМЕТОВ: ВЫКЛ") end)
 HidingButton.MouseButton1Click:Connect(function() ToggleState(HidingButton, "HidingEspEnabled", "ESP УКРЫТИЙ: ВКЛ", "ESP УКРЫТИЙ: ВЫКЛ") end)
 DistanceButton.MouseButton1Click:Connect(function() ToggleState(DistanceButton, "ShowDistanceEnabled", "ДИСТАНЦИЯ ЕСП: ВКЛ", "ДИСТАНЦИЯ ЕСП: ВЫКЛ") end)
-
-SpeedButton.MouseButton1Click:Connect(function() 
-    ToggleState(SpeedButton, "SpeedHackEnabled", "УСКОРЕНИЕ: ВКЛ", "УСКОРЕНИЕ: ВЫКЛ") 
-end)
+SpeedButton.MouseButton1Click:Connect(function() ToggleState(SpeedButton, "SpeedHackEnabled", "УСКОРЕНИЕ: ВКЛ", "УСКОРЕНИЕ: ВЫКЛ") end)
 
 FullbrightButton.MouseButton1Click:Connect(function()
     ToggleState(FullbrightButton, "FullbrightEnabled", "ФУЛЛБРАЙТ: ВКЛ", "ФУЛЛБРАЙТ: ВЫКЛ")
@@ -662,4 +733,4 @@ FullbrightButton.MouseButton1Click:Connect(function()
 end)
 NotifToggleButton.MouseButton1Click:Connect(function() ToggleState(NotifToggleButton, "NotificationsEnabled", "УВЕДОМЛЕНИЯ: ВКЛ", "УВЕДОМЛЕНИЯ: ВЫКЛ") end)
 
-CustomNotify("SYSTEM", "Ocel-hub v12.5 успешно запущен!")
+CustomNotify("SYSTEM", "Ocel-hub v13.0 успешно запущен!")
