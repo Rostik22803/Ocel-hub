@@ -12,6 +12,7 @@ _G.ItemEspEnabled = false
 _G.HidingEspEnabled = false
 _G.NotificationsEnabled = true
 _G.FullbrightEnabled = false
+_G.AutoPickupEnabled = false
 
 -- Цвета обводок и кастомного текста
 local Colors = {
@@ -179,7 +180,7 @@ end)
 
 -- Главное окно меню
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 240, 0, 330)
+MainFrame.Size = UDim2.new(0, 240, 0, 370)
 MainFrame.Position = UDim2.new(0.1, 0, 0.1, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 MainFrame.Active = true
@@ -222,7 +223,7 @@ Instance.new("UICorner", MinimizeBtn).CornerRadius = UDim.new(0, 4)
 
 -- Контейнер для кнопок
 local ButtonContainer = Instance.new("Frame")
-ButtonContainer.Size = UDim2.new(0, 240, 0, 290)
+ButtonContainer.Size = UDim2.new(0, 240, 0, 330)
 ButtonContainer.Position = UDim2.new(0, 0, 0, 35)
 ButtonContainer.BackgroundTransparency = 1
 ButtonContainer.Parent = MainFrame
@@ -268,7 +269,7 @@ local currentActiveKey = nil
 local function ClosePicker()
     currentActiveKey = nil
     PickerPanel.Visible = false
-    MainFrame:TweenSize(UDim2.new(0, 240, 0, 330), "In", "Quart", 0.25, true)
+    MainFrame:TweenSize(UDim2.new(0, 240, 0, 370), "In", "Quart", 0.25, true)
 end
 
 local function OpenPicker(colorKey)
@@ -289,7 +290,7 @@ MinimizeBtn.MouseButton1Click:Connect(function()
         MainFrame:TweenSize(UDim2.new(0, 240, 0, 35), "Out", "Quart", 0.25, true)
     else
         MinimizeBtn.Text = "—"
-        MainFrame:TweenSize(UDim2.new(0, 240, 0, 330), "Out", "Quart", 0.25, true)
+        MainFrame:TweenSize(UDim2.new(0, 240, 0, 370), "Out", "Quart", 0.25, true)
     end
 end)
 
@@ -360,6 +361,7 @@ local ItemButton = CreateEspControl("ESP ПРЕДМЕТОВ", "Item")
 local HidingButton = CreateEspControl("ESP УКРЫТИЙ", "Hiding")
 local FullbrightButton = CreateEspControl("ФУЛЛБРАЙТ", "Fullbright")
 local NotifToggleButton = CreateEspControl("УВЕДОМЛЕНИЯ", "TextNotif")
+local AutoPickupButton = CreateEspControl("АВТО-ПОДБОР ПРЕДМЕТОВ", "Item")
 
 NotifToggleButton.Text = "УВЕДОМЛЕНИЯ: ВКЛ"
 NotifToggleButton.BackgroundColor3 = Color3.fromRGB(40, 150, 40)
@@ -620,5 +622,113 @@ FullbrightButton.MouseButton1Click:Connect(function()
     ApplyFullbright(_G.FullbrightEnabled)
 end)
 NotifToggleButton.MouseButton1Click:Connect(function() ToggleState(NotifToggleButton, "NotificationsEnabled", "УВЕДОМЛЕНИЯ: ВКЛ", "УВЕДОМЛЕНИЯ: ВЫКЛ") end)
+AutoPickupButton.MouseButton1Click:Connect(function() ToggleState(AutoPickupButton, "AutoPickupEnabled", "АВТО-ПОДБОР ПРЕДМЕТОВ: ВКЛ", "АВТО-ПОДБОР ПРЕДМЕТОВ: ВЫКЛ") end)
+
+-- =============================================================================
+-- 5. АВТО-ПОДБОР ПРЕДМЕТОВ
+-- =============================================================================
+local PICKUP_DISTANCE = 15 -- максимальная дистанция для авто-подбора (в студах)
+local pickedUpItems = {} -- таблица уже подобранных предметов
+
+-- Список предметов: имя объекта в игре → название для уведомления
+local AutoPickupItems = {
+    ["KeyObtain"]       = "🔑 Ключ",
+    ["GoldPile"]        = "💰 Золото",
+    ["LiveHintBook"]    = "📘 Книга",
+    ["LiveFuseElement"] = "🔋 Предохранитель",
+    ["LeverForGate"]    = "⚙️ Рычаг",
+    ["ChestBox"]        = "📦 Сундук",
+    ["Lighter"]         = "🔥 Зажигалка",
+    ["Flashlight"]      = "🔦 Фонарик",
+    ["Crucifix"]        = "✝️ Распятие",
+    ["Lockpick"]        = "🔓 Отмычка",
+    ["SkeletonKey"]     = "🗝️ Скелетный Ключ",
+    ["Shears"]          = "✂️ Ножницы",
+    ["Bandage"]         = "🩹 Бинт",
+    ["Vitamins"]        = "💊 Витамины",
+}
+
+-- Вспомогательная: найти позицию объекта
+local function GetObjectPosition(obj)
+    if obj:IsA("BasePart") then
+        return obj.Position
+    elseif obj:IsA("Model") then
+        local p = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
+        if p then return p.Position end
+    end
+    return nil
+end
+
+-- Вспомогательная: попробовать взаимодействовать со всеми промптами/кликдетекторами объекта
+local function TryInteract(obj)
+    local interacted = false
+    -- ProximityPrompt (основной способ в DOORS)
+    for _, prompt in pairs(obj:GetDescendants()) do
+        if prompt:IsA("ProximityPrompt") and prompt.Enabled then
+            fireproximityprompt(prompt)
+            interacted = true
+        end
+    end
+    -- ClickDetector как запасной вариант
+    if not interacted then
+        for _, cd in pairs(obj:GetDescendants()) do
+            if cd:IsA("ClickDetector") then
+                fireclickdetector(cd)
+                interacted = true
+            end
+        end
+    end
+    return interacted
+end
+
+task.spawn(function()
+    while task.wait(0.15) do
+        pcall(function()
+            if not _G.AutoPickupEnabled then return end
+
+            local player = game:GetService("Players").LocalPlayer
+            local character = player.Character
+            if not character then return end
+            local hrp = character:FindFirstChild("HumanoidRootPart")
+            if not hrp then return end
+
+            local rooms = workspace:FindFirstChild("CurrentRooms")
+            if not rooms then return end
+
+            local currentRoomNum = GetCurrentRoomNumber()
+
+            for _, room in pairs(rooms:GetChildren()) do
+                local roomNum = tonumber(room.Name) or 0
+                -- Ищем только в текущей и соседних комнатах
+                if math.abs(roomNum - currentRoomNum) > 2 then continue end
+
+                for _, obj in pairs(room:GetDescendants()) do
+                    local itemLabel = AutoPickupItems[obj.Name]
+                    if not itemLabel then continue end
+
+                    -- Уникальный ID чтобы не подбирать один предмет дважды
+                    local itemId = obj:GetFullName()
+                    if pickedUpItems[itemId] then continue end
+
+                    local pos = GetObjectPosition(obj)
+                    if not pos then continue end
+
+                    local dist = (hrp.Position - pos).Magnitude
+                    if dist <= PICKUP_DISTANCE then
+                        local ok = TryInteract(obj)
+                        if ok then
+                            pickedUpItems[itemId] = true
+                            CustomNotify("✅ АВТО-ПОДБОР", "Подобран: " .. itemLabel)
+                            -- Сбрасываем запись через 30 сек на случай респавна
+                            task.delay(30, function()
+                                pickedUpItems[itemId] = nil
+                            end)
+                        end
+                    end
+                end
+            end
+        end)
+    end
+end)
 
 CustomNotify("SYSTEM", "Ocel-hub v12.3 успешно запущен!")
