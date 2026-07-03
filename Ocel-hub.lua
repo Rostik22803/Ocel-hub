@@ -1,5 +1,5 @@
 -- =============================================================================
--- DOORS LOCAL MEGA HUB v13.0 (BYPASS SPEED + SPEED ADJUSTMENT)
+-- DOORS LOCAL MEGA HUB v13.0 (BYPASS SPEED + ANTI-HEARING FIGURE)
 -- =============================================================================
 
 local oldGui = game:GetService("CoreGui"):FindFirstChild("DoorsLocalMegaHubFinal")
@@ -12,6 +12,7 @@ _G.ItemEspEnabled = false
 _G.HidingEspEnabled = false
 _G.ShowDistanceEnabled = false
 _G.SpeedHackEnabled = false
+_G.AntiHearingEnabled = true -- По умолчанию включено
 _G.SpeedValue = 15 -- Дефолтное значение кастомного ускорения
 _G.NotificationsEnabled = true
 _G.FullbrightEnabled = false
@@ -175,7 +176,7 @@ game:GetService("RunService").RenderStepped:Connect(function()
     end
 end)
 
--- Главное окно меню (Высота увеличена для нового слайдера скорости)
+-- Главное окно меню (Высота адаптирована)
 local MainFrame = Instance.new("Frame")
 MainFrame.Size = UDim2.new(0, 240, 0, 445)
 MainFrame.Position = UDim2.new(0.1, 0, 0.1, 0)
@@ -219,7 +220,7 @@ local ButtonContainer = Instance.new("ScrollingFrame")
 ButtonContainer.Size = UDim2.new(1, 0, 1, -40)
 ButtonContainer.Position = UDim2.new(0, 0, 0, 35)
 ButtonContainer.BackgroundTransparency = 1
-ButtonContainer.CanvasSize = UDim2.new(0, 0, 0, 520)
+ButtonContainer.CanvasSize = UDim2.new(0, 0, 0, 570) -- Увеличена высота под новые кнопки
 ButtonContainer.ScrollBarThickness = 2
 ButtonContainer.Parent = MainFrame
 
@@ -366,6 +367,11 @@ local ItemButton = CreateEspControl("ESP ПРЕДМЕТОВ", "Item")
 local HidingButton = CreateEspControl("ESP УКРЫТИЙ", "Hiding")
 local DistanceButton = CreateSimpleButton("ДИСТАНЦИЯ ЕСП")
 local SpeedButton = CreateSimpleButton("УСКОРЕНИЕ (SPEED)")
+local AntiHearingButton = CreateSimpleButton("АНТИ-СЛУХ ФИГУРЫ")
+
+-- По умолчанию включен, так что подкрасим кнопку зеленой
+AntiHearingButton.Text = "АНТИ-СЛУХ ФИГУРЫ: ВКЛ"
+AntiHearingButton.BackgroundColor3 = Color3.fromRGB(40, 150, 40)
 
 -- =============================================================================
 -- НАСТРОЙКА ИНТЕРФЕЙСА ДЛЯ СКОРОСТИ (СПИДХАК СКЛАД)
@@ -511,20 +517,55 @@ FovResetBtn.MouseButton1Click:Connect(function()
 end)
 
 -- =============================================================================
--- 2. СТАБИЛЬНЫЙ БАЙПАС БЕЗ ОТКАТОВ НАЗАД (ФИЗИЧЕСКИЙ ВЕКТОРНЫЙ ИМПУЛЬС)
+-- 2. СТАБИЛЬНЫЙ БАЙПАС + АНТИ-СЛУХ ФИГУРЫ (HOOKMETAMETHOD / REMOTEEVENT BYPASS)
 -- =============================================================================
+
+-- Хук удаленного события присяди для защиты от Фигуры
+local Remotes = game:GetService("ReplicatedStorage"):WaitForChild("RemotesFolder", 5) or game:GetService("ReplicatedStorage")
+local CrouchRemote = Remotes:FindFirstChild("Crouch") or Remotes:FindFirstChild("Crouching")
+
+if not CrouchRemote then
+    -- Поиск альтернативного названия ремута, если разработчики обновили имена
+    for _, obj in pairs(game:GetService("ReplicatedStorage"):GetDescendants()) do
+        if obj:IsA("RemoteEvent") and (obj.Name:lower():find("crouch") or obj.Name:lower():find("sneak")) then
+            CrouchRemote = obj
+            break
+        end
+    end
+end
+
+-- Перехватчик отправки аргументов на сервер
+local oldNamecall
+oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+    local args = {...}
+    local method = getnamecallmethod()
+    
+    if _G.AntiHearingEnabled and self == CrouchRemote and (method == "FireServer" or method == "fireServer") then
+        -- Насильно подменяем первый аргумент (состояние присяди) на true
+        args[1] = true
+        return oldNamecall(self, unpack(args))
+    end
+    
+    return oldNamecall(self, ...)
+end)
+
 game:GetService("RunService").Heartbeat:Connect(function()
     pcall(function()
         local player = game:GetService("Players").LocalPlayer
-        if player and player.Character and _G.SpeedHackEnabled then
-            local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
-            local root = player.Character:FindFirstChild("HumanoidRootPart")
+        if player and player.Character then
+            -- Дополнительно постоянно шлем сигнал присяди локально, если фича активна
+            if _G.AntiHearingEnabled and CrouchRemote then
+                CrouchRemote:FireServer(true)
+            end
             
-            if humanoid and root and humanoid.MoveDirection.Magnitude > 0 then
-                -- Байпас античита: вместо CFrame меняем Velocity, подстраиваясь под игровую физику 
-                -- Это убирает фризы и исключает детекты резины/телепортации назад
-                local targetVelocity = humanoid.MoveDirection * _G.SpeedValue
-                root.AssemblyLinearVelocity = Vector3.new(targetVelocity.X, root.AssemblyLinearVelocity.Y, targetVelocity.Z)
+            if _G.SpeedHackEnabled then
+                local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+                local root = player.Character:FindFirstChild("HumanoidRootPart")
+                
+                if humanoid and root and humanoid.MoveDirection.Magnitude > 0 then
+                    local targetVelocity = humanoid.MoveDirection * _G.SpeedValue
+                    root.AssemblyLinearVelocity = Vector3.new(targetVelocity.X, root.AssemblyLinearVelocity.Y, targetVelocity.Z)
+                end
             end
         end
     end)
@@ -726,6 +767,7 @@ ItemButton.MouseButton1Click:Connect(function() ToggleState(ItemButton, "ItemEsp
 HidingButton.MouseButton1Click:Connect(function() ToggleState(HidingButton, "HidingEspEnabled", "ESP УКРЫТИЙ: ВКЛ", "ESP УКРЫТИЙ: ВЫКЛ") end)
 DistanceButton.MouseButton1Click:Connect(function() ToggleState(DistanceButton, "ShowDistanceEnabled", "ДИСТАНЦИЯ ЕСП: ВКЛ", "ДИСТАНЦИЯ ЕСП: ВЫКЛ") end)
 SpeedButton.MouseButton1Click:Connect(function() ToggleState(SpeedButton, "SpeedHackEnabled", "УСКОРЕНИЕ: ВКЛ", "УСКОРЕНИЕ: ВЫКЛ") end)
+AntiHearingButton.MouseButton1Click:Connect(function() ToggleState(AntiHearingButton, "AntiHearingEnabled", "АНТИ-СЛУХ ФИГУРЫ: ВКЛ", "АНТИ-СЛУХ ФИГУРЫ: ВЫКЛ") end)
 
 FullbrightButton.MouseButton1Click:Connect(function()
     ToggleState(FullbrightButton, "FullbrightEnabled", "ФУЛЛБРАЙТ: ВКЛ", "ФУЛЛБРАЙТ: ВЫКЛ")
