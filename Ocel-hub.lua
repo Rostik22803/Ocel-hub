@@ -12,7 +12,8 @@ _G.ItemEspEnabled = false
 _G.HidingEspEnabled = false
 _G.NotificationsEnabled = true
 _G.FullbrightEnabled = false
-_G.InstantInteract = false
+_G.AutoInteract = false
+_G.InteractRange = 15
 
 -- Цвета обводок и кастомного текста
 local Colors = {
@@ -625,22 +626,25 @@ FullbrightButton.MouseButton1Click:Connect(function()
     ApplyFullbright(_G.FullbrightEnabled)
 end)
 NotifToggleButton.MouseButton1Click:Connect(function() ToggleState(NotifToggleButton, "NotificationsEnabled", "УВЕДОМЛЕНИЯ: ВКЛ", "УВЕДОМЛЕНИЯ: ВЫКЛ") end)
-InteractButton.MouseButton1Click:Connect(function() ToggleState(InteractButton, "InstantInteract", "АВТО-ИНТЕРАКТ: ВКЛ", "АВТО-ИНТЕРАКТ: ВЫКЛ") end)
+InteractButton.MouseButton1Click:Connect(function() ToggleState(InteractButton, "AutoInteract", "АВТО-ИНТЕРАКТ: ВКЛ", "АВТО-ИНТЕРАКТ: ВЫКЛ") end)
 
 -- =============================================================================
--- 5. АВТО-ИНТЕРАКТ (Instant Interact)
+-- 5. АВТО-ИНТЕРАКТ
 -- =============================================================================
 task.spawn(function()
-    while task.wait(0.1) do
-        if _G.InstantInteract then
+    while task.wait(0.2) do
+        if _G.AutoInteract then
             pcall(function()
-                for _, obj in pairs(workspace:GetDescendants()) do
-                    if obj:IsA("ProximityPrompt") then
-                        if obj.HoldDuration ~= 0 then
-                            obj.HoldDuration = 0
-                        end
-                        if obj.MaxActivationDistance < 10 then
-                            obj.MaxActivationDistance = 12
+                local char = game:GetService("Players").LocalPlayer.Character
+                local root = char and char:FindFirstChild("HumanoidRootPart")
+                if root then
+                    for _, obj in pairs(workspace:GetDescendants()) do
+                        if obj:IsA("ProximityPrompt") and obj.Enabled then
+                            local distance = (obj.Parent:GetPivot().Position - root.Position).Magnitude
+                            if distance <= _G.InteractRange then
+                                fireproximityprompt(obj)
+                                task.wait(0.05)
+                            end
                         end
                     end
                 end
