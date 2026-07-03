@@ -1,5 +1,5 @@
 -- =============================================================================
--- DOORS LOCAL MEGA HUB v12.4 (FIXED MINIMIZE + DISTANCE TOGGLE)
+-- DOORS LOCAL MEGA HUB v12.5 (PURE MINIMIZE + SPEEDHACK)
 -- =============================================================================
 
 local oldGui = game:GetService("CoreGui"):FindFirstChild("DoorsLocalMegaHubFinal")
@@ -10,9 +10,10 @@ _G.DoorEspEnabled = false
 _G.MonsterEspEnabled = false
 _G.ItemEspEnabled = false
 _G.HidingEspEnabled = false
+_G.ShowDistanceEnabled = false
+_G.SpeedHackEnabled = false -- Новый тумблер ускорения
 _G.NotificationsEnabled = true
 _G.FullbrightEnabled = false
-_G.ShowDistanceEnabled = false -- Новый тумблер для дистанции
 
 -- Цвета обводок и кастомного текста
 local Colors = {
@@ -173,14 +174,14 @@ game:GetService("RunService").RenderStepped:Connect(function()
     end
 end)
 
--- Главное окно меню (Увеличили высоту под новую кнопку)
+-- Главное окно меню (Высота адаптирована под кнопки)
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 240, 0, 370)
+MainFrame.Size = UDim2.new(0, 240, 0, 410)
 MainFrame.Position = UDim2.new(0.1, 0, 0.1, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 MainFrame.Active = true
 MainFrame.Draggable = true
-MainFrame.ClipsDescendants = true -- Защита от багов скролла при сворачивании
+MainFrame.ClipsDescendants = true -- Обрезает контент при схлопывании меню
 MainFrame.Parent = ScreenGui
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
 
@@ -217,7 +218,7 @@ local ButtonContainer = Instance.new("ScrollingFrame")
 ButtonContainer.Size = UDim2.new(1, 0, 1, -40)
 ButtonContainer.Position = UDim2.new(0, 0, 0, 35)
 ButtonContainer.BackgroundTransparency = 1
-ButtonContainer.CanvasSize = UDim2.new(0, 0, 0, 440)
+ButtonContainer.CanvasSize = UDim2.new(0, 0, 0, 480)
 ButtonContainer.ScrollBarThickness = 2
 ButtonContainer.Parent = MainFrame
 
@@ -261,18 +262,18 @@ local currentActiveKey = nil
 local function ClosePicker()
     currentActiveKey = nil
     PickerPanel.Visible = false
-    MainFrame:TweenSize(UDim2.new(0, 240, 0, 370), "In", "Quart", 0.25, true)
+    MainFrame:TweenSize(UDim2.new(0, 240, 0, 410), "In", "Quart", 0.25, true)
 end
 
 local function OpenPicker(colorKey)
     if currentActiveKey == colorKey then ClosePicker() else
         currentActiveKey = colorKey
         PickerPanel.Visible = true
-        MainFrame:TweenSize(UDim2.new(0, 390, 0, 370), "Out", "Quart", 0.25, true)
+        MainFrame:TweenSize(UDim2.new(0, 390, 0, 410), "Out", "Quart", 0.25, true)
     end
 end
 
--- ИСПРАВЛЕННАЯ логика кнопки Свернуть (С жестким переопределением размеров)
+-- ЧИСТОЕ СВЕРТЫВАНИЕ: Оставляет только аккуратную плашку заголовка
 local isMinimized = false
 MinimizeBtn.MouseButton1Click:Connect(function()
     isMinimized = not isMinimized
@@ -284,7 +285,7 @@ MinimizeBtn.MouseButton1Click:Connect(function()
     else
         MinimizeBtn.Text = "—"
         task.delay(0.1, function() ButtonContainer.Visible = true end)
-        MainFrame:TweenSize(UDim2.new(0, 240, 0, 370), "Out", "Quart", 0.2)
+        MainFrame:TweenSize(UDim2.new(0, 240, 0, 410), "Out", "Quart", 0.2)
     end
 end)
 
@@ -345,7 +346,6 @@ local function CreateEspControl(name, colorKey)
     return MainBtn
 end
 
--- Простая кнопка без шестеренки настроек
 local function CreateSimpleButton(name)
     local MainBtn = Instance.new("TextButton")
     MainBtn.Size = UDim2.new(0, 220, 0, 36)
@@ -363,7 +363,8 @@ local DoorButton = CreateEspControl("ESP ДВЕРЕЙ", "Door")
 local MonsterButton = CreateEspControl("ESP МОНСТРОВ", "Monster")
 local ItemButton = CreateEspControl("ESP ПРЕДМЕТОВ", "Item")
 local HidingButton = CreateEspControl("ESP УКРЫТИЙ", "Hiding")
-local DistanceButton = CreateSimpleButton("ДИСТАНЦИЯ ЕСП") -- Новая кнопка
+local DistanceButton = CreateSimpleButton("ДИСТАНЦИЯ ЕСП")
+local SpeedButton = CreateSimpleButton("УСКОРЕНИЕ (SPEED)") -- Новая кнопка
 local FullbrightButton = CreateEspControl("ФУЛЛБРАЙТ", "Fullbright")
 local NotifToggleButton = CreateEspControl("УВЕДОМЛЕНИЯ", "TextNotif")
 
@@ -438,7 +439,24 @@ FovResetBtn.MouseButton1Click:Connect(function()
 end)
 
 -- =============================================================================
--- 2. ESP ENGINE С ДИНАМИЧЕСКИМ ТУМБЛЕРОМ ДИСТАНЦИИ
+-- 2. СТАБИЛЬНЫЙ SPEEDHACK (ОБХОД АНТИЧИТА ЧЕРЕЗ CRAMPING ДВИЖЕНИЯ)
+-- =============================================================================
+game:GetService("RunService").RenderStepped:Connect(function()
+    pcall(function()
+        local player = game:GetService("Players").LocalPlayer
+        if player and player.Character and _G.SpeedHackEnabled then
+            local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+            local root = player.Character:FindFirstChild("HumanoidRootPart")
+            if humanoid and root and humanoid.MoveDirection.Magnitude > 0 then
+                -- Добавляем аккуратный контролируемый пинок к скорости
+                root.CFrame = root.CFrame + (humanoid.MoveDirection * 0.14)
+            end
+        end
+    end)
+end)
+
+-- =============================================================================
+-- 3. ESP ENGINE
 -- =============================================================================
 local function ApplyESP(object, color, text, id)
     if not object then return end
@@ -446,7 +464,6 @@ local function ApplyESP(object, color, text, id)
     local billboard = object:FindFirstChild("LocalText_" .. id)
     local highlight = object:FindFirstChild("LocalHighlight_" .. id)
     
-    -- Просчет дистанции выводится, ТОЛЬКО если _G.ShowDistanceEnabled активен
     local distanceText = ""
     if _G.ShowDistanceEnabled then
         local localPlayer = game:GetService("Players").LocalPlayer
@@ -502,7 +519,7 @@ local function RemoveESP(object, id)
 end
 
 -- =============================================================================
--- 3. ЦИКЛЫ СКАНИРОВАНИЯ И АВТО-ОЧИСТКИ
+-- 4. ЦИКЛЫ СКАНИРОВАНИЯ И АВТО-ОЧИСТКИ
 -- =============================================================================
 
 task.spawn(function()
@@ -616,7 +633,7 @@ workspace.ChildAdded:Connect(function(child)
 end)
 
 -- =============================================================================
--- 4. УПРАВЛЕНИЕ КНОПКАМИ И ТУМБЛЕРАМИ
+-- 5. УПРАВЛЕНИЕ КНОПКАМИ И ТУМБЛЕРАМИ
 -- =============================================================================
 local function ToggleState(btn, flagName, textOn, textOff)
     _G[flagName] = not _G[flagName]
@@ -633,9 +650,10 @@ DoorButton.MouseButton1Click:Connect(function() ToggleState(DoorButton, "DoorEsp
 MonsterButton.MouseButton1Click:Connect(function() ToggleState(MonsterButton, "MonsterEspEnabled", "ESP МОНСТРОВ: ВКЛ", "ESP МОНСТРОВ: ВЫКЛ") end)
 ItemButton.MouseButton1Click:Connect(function() ToggleState(ItemButton, "ItemEspEnabled", "ESP ПРЕДМЕТОВ: ВКЛ", "ESP ПРЕДМЕТОВ: ВЫКЛ") end)
 HidingButton.MouseButton1Click:Connect(function() ToggleState(HidingButton, "HidingEspEnabled", "ESP УКРЫТИЙ: ВКЛ", "ESP УКРЫТИЙ: ВЫКЛ") end)
+DistanceButton.MouseButton1Click:Connect(function() ToggleState(DistanceButton, "ShowDistanceEnabled", "ДИСТАНЦИЯ ЕСП: ВКЛ", "ДИСТАНЦИЯ ЕСП: ВЫКЛ") end)
 
-DistanceButton.MouseButton1Click:Connect(function() 
-    ToggleState(DistanceButton, "ShowDistanceEnabled", "ДИСТАНЦИЯ ЕСП: ВКЛ", "ДИСТАНЦИЯ ЕСП: ВЫКЛ") 
+SpeedButton.MouseButton1Click:Connect(function() 
+    ToggleState(SpeedButton, "SpeedHackEnabled", "УСКОРЕНИЕ: ВКЛ", "УСКОРЕНИЕ: ВЫКЛ") 
 end)
 
 FullbrightButton.MouseButton1Click:Connect(function()
@@ -644,4 +662,4 @@ FullbrightButton.MouseButton1Click:Connect(function()
 end)
 NotifToggleButton.MouseButton1Click:Connect(function() ToggleState(NotifToggleButton, "NotificationsEnabled", "УВЕДОМЛЕНИЯ: ВКЛ", "УВЕДОМЛЕНИЯ: ВЫКЛ") end)
 
-CustomNotify("SYSTEM", "Ocel-hub v12.4 успешно запущен!")
+CustomNotify("SYSTEM", "Ocel-hub v12.5 успешно запущен!")
