@@ -12,6 +12,7 @@ _G.ItemEspEnabled = false
 _G.HidingEspEnabled = false
 _G.NotificationsEnabled = true
 _G.FullbrightEnabled = false
+_G.InstantInteractEnabled = false
 
 -- Цвета обводок и кастомного текста
 local Colors = {
@@ -179,7 +180,7 @@ end)
 
 -- Главное окно меню
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 240, 0, 330)
+MainFrame.Size = UDim2.new(0, 240, 0, 372)
 MainFrame.Position = UDim2.new(0.1, 0, 0.1, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 MainFrame.Active = true
@@ -222,7 +223,7 @@ Instance.new("UICorner", MinimizeBtn).CornerRadius = UDim.new(0, 4)
 
 -- Контейнер для кнопок
 local ButtonContainer = Instance.new("Frame")
-ButtonContainer.Size = UDim2.new(0, 240, 0, 290)
+ButtonContainer.Size = UDim2.new(0, 240, 0, 332)
 ButtonContainer.Position = UDim2.new(0, 0, 0, 35)
 ButtonContainer.BackgroundTransparency = 1
 ButtonContainer.Parent = MainFrame
@@ -268,14 +269,14 @@ local currentActiveKey = nil
 local function ClosePicker()
     currentActiveKey = nil
     PickerPanel.Visible = false
-    MainFrame:TweenSize(UDim2.new(0, 240, 0, 330), "In", "Quart", 0.25, true)
+    MainFrame:TweenSize(UDim2.new(0, 240, 0, 372), "In", "Quart", 0.25, true)
 end
 
 local function OpenPicker(colorKey)
     if currentActiveKey == colorKey then ClosePicker() else
         currentActiveKey = colorKey
         PickerPanel.Visible = true
-        MainFrame:TweenSize(UDim2.new(0, 390, 0, 330), "Out", "Quart", 0.25, true)
+        MainFrame:TweenSize(UDim2.new(0, 390, 0, 372), "Out", "Quart", 0.25, true)
     end
 end
 
@@ -289,7 +290,7 @@ MinimizeBtn.MouseButton1Click:Connect(function()
         MainFrame:TweenSize(UDim2.new(0, 240, 0, 35), "Out", "Quart", 0.25, true)
     else
         MinimizeBtn.Text = "—"
-        MainFrame:TweenSize(UDim2.new(0, 240, 0, 330), "Out", "Quart", 0.25, true)
+        MainFrame:TweenSize(UDim2.new(0, 240, 0, 372), "Out", "Quart", 0.25, true)
     end
 end)
 
@@ -360,6 +361,7 @@ local ItemButton = CreateEspControl("ESP ПРЕДМЕТОВ", "Item")
 local HidingButton = CreateEspControl("ESP УКРЫТИЙ", "Hiding")
 local FullbrightButton = CreateEspControl("ФУЛЛБРАЙТ", "Fullbright")
 local NotifToggleButton = CreateEspControl("УВЕДОМЛЕНИЯ", "TextNotif")
+local InstantInteractButton = CreateEspControl("ИНСТАНТ ИНТЕРАКТ", "Item")
 
 NotifToggleButton.Text = "УВЕДОМЛЕНИЯ: ВКЛ"
 NotifToggleButton.BackgroundColor3 = Color3.fromRGB(40, 150, 40)
@@ -598,6 +600,96 @@ workspace.ChildAdded:Connect(function(child)
 end)
 
 -- =============================================================================
+-- 3.1. ИНСТАНТ ИНТЕРАКТ
+-- =============================================================================
+task.spawn(function()
+    while task.wait(0.2) do
+        pcall(function()
+            if not _G.InstantInteractEnabled then return end
+            
+            local player = game:GetService("Players").LocalPlayer
+            local character = player.Character
+            if not character then return end
+            
+            local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+            if not humanoidRootPart then return end
+            
+            local rooms = workspace:FindFirstChild("CurrentRooms")
+            if not rooms then return end
+            
+            local currentRoomNum = GetCurrentRoomNumber()
+            local maxDistance = 15
+            
+            for _, room in pairs(rooms:GetChildren()) do
+                local roomNum = tonumber(room.Name) or 0
+                -- Только текущая и следующая комнаты
+                if roomNum >= currentRoomNum and roomNum <= currentRoomNum + 1 then
+                    for _, obj in pairs(room:GetDescendants()) do
+                        local distance = (obj:IsA("BasePart") or obj:IsA("Model")) and 
+                                        (obj:GetPivot().Position - humanoidRootPart.Position).Magnitude or 999
+                        
+                        if distance < maxDistance then
+                            -- Подбор предметов
+                            if obj:IsA("Model") then
+                                if obj.Name == "GoldPile" then
+                                    local prompt = obj:FindFirstChildOfClass("ProximityPrompt", true)
+                                    if prompt and prompt.Enabled then
+                                        fireproximityprompt(prompt)
+                                    end
+                                elseif obj.Name == "KeyObtain" then
+                                    local prompt = obj:FindFirstChildOfClass("ProximityPrompt", true)
+                                    if prompt and prompt.Enabled then
+                                        fireproximityprompt(prompt)
+                                    end
+                                elseif obj.Name == "LiveHintBook" then
+                                    local prompt = obj:FindFirstChildOfClass("ProximityPrompt", true)
+                                    if prompt and prompt.Enabled then
+                                        fireproximityprompt(prompt)
+                                    end
+                                elseif obj.Name == "LiveFuseElement" then
+                                    local prompt = obj:FindFirstChildOfClass("ProximityPrompt", true)
+                                    if prompt and prompt.Enabled then
+                                        fireproximityprompt(prompt)
+                                    end
+                                -- Открытие тумбочек/сундуков
+                                elseif obj.Name == "ChestBox" or obj.Name == "ChestBoxLocked" then
+                                    local prompt = obj:FindFirstChildOfClass("ProximityPrompt", true)
+                                    if prompt and prompt.Enabled then
+                                        fireproximityprompt(prompt)
+                                    end
+                                elseif obj.Name == "DrawerContainer" then
+                                    local prompt = obj:FindFirstChildOfClass("ProximityPrompt", true)
+                                    if prompt and prompt.Enabled then
+                                        fireproximityprompt(prompt)
+                                    end
+                                end
+                            end
+                            
+                            -- Открытие дверей с ключом
+                            if obj.Name == "Door" and obj.Parent and obj.Parent.Name == "Door" then
+                                local doorParent = obj.Parent
+                                local lock = doorParent:FindFirstChild("Lock") or doorParent:FindFirstChild("KeyLock")
+                                if lock then
+                                    local prompt = lock:FindFirstChildOfClass("ProximityPrompt", true)
+                                    if prompt and prompt.Enabled then
+                                        -- Проверяем, есть ли ключ в инвентаре
+                                        local hasKey = false
+                                        if character:FindFirstChild("Key") then hasKey = true end
+                                        if hasKey then
+                                            fireproximityprompt(prompt)
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end)
+    end
+end)
+
+-- =============================================================================
 -- 4. УПРАВЛЕНИЕ КНОПКАМИ И ТУМБЛЕРАМИ
 -- =============================================================================
 local function ToggleState(btn, flagName, textOn, textOff)
@@ -620,5 +712,11 @@ FullbrightButton.MouseButton1Click:Connect(function()
     ApplyFullbright(_G.FullbrightEnabled)
 end)
 NotifToggleButton.MouseButton1Click:Connect(function() ToggleState(NotifToggleButton, "NotificationsEnabled", "УВЕДОМЛЕНИЯ: ВКЛ", "УВЕДОМЛЕНИЯ: ВЫКЛ") end)
+InstantInteractButton.MouseButton1Click:Connect(function()
+    ToggleState(InstantInteractButton, "InstantInteractEnabled", "ИНСТАНТ ИНТЕРАКТ: ВКЛ", "ИНСТАНТ ИНТЕРАКТ: ВЫКЛ")
+    if _G.InstantInteractEnabled then
+        CustomNotify("⚡ ИНСТАНТ ИНТЕРАКТ", "Авто-подбор и открытие включены")
+    end
+end)
 
 CustomNotify("SYSTEM", "Ocel-hub v12.3 успешно запущен!")
