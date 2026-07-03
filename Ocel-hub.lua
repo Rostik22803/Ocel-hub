@@ -1,5 +1,5 @@
 -- =============================================================================
--- DOORS LOCAL MEGA HUB v14.0 (AUTO-LIBRARY & AUTO-BREAKER 100 INCLUDED)
+-- DOORS LOCAL MEGA HUB v14.1 (STABLE AUTO-LOGIC UPDATE)
 -- =============================================================================
 
 local oldGui = game:GetService("CoreGui"):FindFirstChild("DoorsLocalMegaHubFinal")
@@ -12,14 +12,15 @@ _G.ItemEspEnabled = false
 _G.HidingEspEnabled = false
 _G.ShowDistanceEnabled = false
 _G.SpeedHackEnabled = false
-_G.AntiHearingEnabled = true -- По умолчанию включено
-_G.SpeedValue = 15 -- Дефолтное значение кастомного ускорения
-_G.NotificationsEnabled = true
+_G.AntiHearingEnabled = true[cite: 1]
+_G.SpeedValue = 15[cite: 1]
+_G.NotificationsEnabled = true[cite: 1]
 _G.FullbrightEnabled = false
-_G.AutoLibraryEnabled = true  -- Авто-код библиотеки по умолчанию включен
-_G.AutoBreakerEnabled = true  -- Авто-щиток 100 двери по умолчанию включен
 
--- Цвета обводок и кастомного текста
+_G.AutoLibraryEnabled = true  -- Авто-код библиотеки
+_G.AutoBreakerEnabled = true  -- Авто-щиток 100 двери
+
+-- Цвета обводок и кастомного текста[cite: 1]
 local Colors = {
     Door = Color3.fromRGB(0, 255, 100),     
     Monster = Color3.fromRGB(255, 50, 50),  
@@ -29,7 +30,7 @@ local Colors = {
     Fullbright = Color3.fromRGB(255, 255, 255)
 }
 
--- Фуллбрайт: освещение
+-- Фуллбрайт: освещение[cite: 1]
 local DefaultLighting = {
     Ambient = Color3.fromRGB(0, 0, 0),
     OutdoorAmbient = Color3.fromRGB(70, 70, 70),
@@ -158,7 +159,6 @@ local function CustomNotify(title, text)
     end)
 end
 
--- FOV настройки
 _G.CustomFOV = 70
 local DEFAULT_FOV = 70
 local MIN_FOV = 30
@@ -178,7 +178,6 @@ game:GetService("RunService").RenderStepped:Connect(function()
     end
 end)
 
--- Главное окно меню (Высота адаптирована)
 local MainFrame = Instance.new("Frame")
 MainFrame.Size = UDim2.new(0, 240, 0, 445)
 MainFrame.Position = UDim2.new(0.1, 0, 0.1, 0)
@@ -222,7 +221,7 @@ local ButtonContainer = Instance.new("ScrollingFrame")
 ButtonContainer.Size = UDim2.new(1, 0, 1, -40)
 ButtonContainer.Position = UDim2.new(0, 0, 0, 35)
 ButtonContainer.BackgroundTransparency = 1
-ButtonContainer.CanvasSize = UDim2.new(0, 0, 0, 660) -- Увеличена высота под новые автоматизации
+ButtonContainer.CanvasSize = UDim2.new(0, 0, 0, 660) -- Корректный размер для прокрутки всех кнопок
 ButtonContainer.ScrollBarThickness = 2
 ButtonContainer.Parent = MainFrame
 
@@ -277,7 +276,6 @@ local function OpenPicker(colorKey)
     end
 end
 
--- СВЕРТЫВАНИЕ
 local isMinimized = false
 MinimizeBtn.MouseButton1Click:Connect(function()
     isMinimized = not isMinimized
@@ -371,21 +369,17 @@ local DistanceButton = CreateSimpleButton("ДИСТАНЦИЯ ЕСП")
 local SpeedButton = CreateSimpleButton("УСКОРЕНИЕ (SPEED)")
 local AntiHearingButton = CreateSimpleButton("АНТИ-СЛУХ ФИГУРЫ")
 local AutoLibraryButton = CreateSimpleButton("АВТО-КОД БИБЛИОТЕКИ")
-local AutoBreakerButton = CreateSimpleButton("АВТО-ЩИТОК (ДВЕРЬ 100)")
+local AutoBreakerButton = CreateSimpleButton("АВТО-ЩИТОК (100 ДВЕРЬ)")
 
--- Активация дефолтных включенных кнопок
 AntiHearingButton.Text = "АНТИ-СЛУХ ФИГУРЫ: ВКЛ"
 AntiHearingButton.BackgroundColor3 = Color3.fromRGB(40, 150, 40)
 
 AutoLibraryButton.Text = "АВТО-КОД БИБЛИОТЕКИ: ВКЛ"
 AutoLibraryButton.BackgroundColor3 = Color3.fromRGB(40, 150, 40)
 
-AutoBreakerButton.Text = "АВТО-ЩИТОК (ДВЕРЬ 100): ВКЛ"
+AutoBreakerButton.Text = "АВТО-ЩИТОК (100 ДВЕРЬ): ВКЛ"
 AutoBreakerButton.BackgroundColor3 = Color3.fromRGB(40, 150, 40)
 
--- =============================================================================
--- НАСТРОЙКА ИНТЕРФЕЙСА ДЛЯ СКОРОСТИ
--- =============================================================================
 local SpeedRow = Instance.new("Frame")
 SpeedRow.Size = UDim2.new(0, 220, 0, 36)
 SpeedRow.BackgroundTransparency = 1
@@ -458,7 +452,6 @@ local NotifToggleButton = CreateEspControl("УВЕДОМЛЕНИЯ", "TextNotif"
 NotifToggleButton.Text = "УВЕДОМЛЕНИЯ: ВКЛ"
 NotifToggleButton.BackgroundColor3 = Color3.fromRGB(40, 150, 40)
 
--- Настройки FOV
 local FovRow = Instance.new("Frame")
 FovRow.Size = UDim2.new(0, 220, 0, 36)
 FovRow.BackgroundTransparency = 1
@@ -527,7 +520,7 @@ FovResetBtn.MouseButton1Click:Connect(function()
 end)
 
 -- =============================================================================
--- 2. СТАБИЛЬНЫЙ БАЙПАС + АНТИ-СЛУХ ФИГУРЫ
+-- 2. СТАБИЛЬНЫЙ УДОВЛЕТВОРИТЕЛЬНЫЙ БАЙПАС + АВТО-ФУНКЦИИ (ОБНОВЛЕНО)
 -- =============================================================================
 local Remotes = game:GetService("ReplicatedStorage"):WaitForChild("RemotesFolder", 5) or game:GetService("ReplicatedStorage")
 local CrouchRemote = Remotes:FindFirstChild("Crouch") or Remotes:FindFirstChild("Crouching")
@@ -541,17 +534,35 @@ if not CrouchRemote then
     end
 end
 
+-- Универсальный перехватчик сети для стабильного авто-решения и скрытности
 local oldNamecall
 oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
     local args = {...}
     local method = getnamecallmethod()
     
+    -- Защита от Фигуры (Анти-Слух)[cite: 1]
     if _G.AntiHearingEnabled and self == CrouchRemote and (method == "FireServer" or method == "fireServer") then
-        args[1] = true
-        return oldNamecall(self, unpack(args))
+        args[1] = true[cite: 1]
+        return oldNamecall(self, unpack(args))[cite: 1]
     end
     
-    return oldNamecall(self, ...)
+    -- Авто-мини игра 100-й двери (перехват начала и отправка победного сигнала)
+    if _G.AutoBreakerEnabled and self.Name:lower():find("break") and (method == "FireServer" or method == "fireServer") then
+        if args[1] and type(args[1]) == "number" then
+            -- Сообщаем серверу, что все этапы решены идеально
+            task.spawn(function()
+                oldNamecall(self, 1, true)
+                task.wait(0.1)
+                oldNamecall(self, 2, true)
+                task.wait(0.1)
+                oldNamecall(self, 3, true)
+            end)
+            CustomNotify("АВТО-ЩИТОК", "Мини-игра на 100 двери пройдена!")
+            return
+        end
+    end
+    
+    return oldNamecall(self, ...)[cite: 1]
 end)
 
 game:GetService("RunService").Heartbeat:Connect(function()
@@ -559,86 +570,53 @@ game:GetService("RunService").Heartbeat:Connect(function()
         local player = game:GetService("Players").LocalPlayer
         if player and player.Character then
             if _G.AntiHearingEnabled and CrouchRemote then
-                CrouchRemote:FireServer(true)
+                CrouchRemote:FireServer(true)[cite: 1]
             end
             
-            if _G.SpeedHackEnabled then
-                local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
-                local root = player.Character:FindFirstChild("HumanoidRootPart")
+            if _G.SpeedHackEnabled then[cite: 1]
+                local humanoid = player.Character:FindFirstChildOfClass("Humanoid")[cite: 1]
+                local root = player.Character:FindFirstChild("HumanoidRootPart")[cite: 1]
                 
-                if humanoid and root and humanoid.MoveDirection.Magnitude > 0 then
-                    local targetVelocity = humanoid.MoveDirection * _G.SpeedValue
-                    root.AssemblyLinearVelocity = Vector3.new(targetVelocity.X, root.AssemblyLinearVelocity.Y, targetVelocity.Z)
+                if humanoid and root and humanoid.MoveDirection.Magnitude > 0 then[cite: 1]
+                    local targetVelocity = humanoid.MoveDirection * _G.SpeedValue[cite: 1]
+                    root.AssemblyLinearVelocity = Vector3.new(targetVelocity.X, root.AssemblyLinearVelocity.Y, targetVelocity.Z)[cite: 1]
                 end
             end
         end
     end)
 end)
 
--- =============================================================================
--- [НОВОЕ] АВТОМАТИЗАЦИЯ БИБЛИОТЕКИ (50 ДВЕРЬ) И ЩИТКА (100 ДВЕРЬ)
--- =============================================================================
+-- Авто-код библиотеки (50 Дверь)
 task.spawn(function()
     while task.wait(0.5) do
         if _G.AutoLibraryEnabled and GetCurrentRoomNumber() == 50 then
             pcall(function()
                 local playerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
                 local bookGui = playerGui:FindFirstChild("Books") or playerGui:FindFirstChild("BookHint")
-                local padFrame = playerGui:FindFirstChild("Cuts") and playerGui.Cuts:FindFirstChild("Padlock")
+                local cuts = playerGui:FindFirstChild("Cuts")
+                local padlockFrame = cuts and cuts:FindFirstChild("Padlock")
                 
-                if bookGui and padFrame and padFrame.Visible then
-                    local localFolder = workspace:FindFirstChild("CurrentRooms") and workspace.CurrentRooms:FindFirstChild("50")
-                    if localFolder and localFolder:FindFirstChild("Padlock") and localFolder.Padlock:FindFirstChild("Remotes") then
-                        local entity = localFolder.Padlock.Remotes:FindFirstChild("Unlock")
-                        
-                        -- Считываем текущую комбинацию из интерфейса подсказок
-                        local code = ""
-                        for i = 1, 5 do
-                            local slot = bookGui:FindFirstChild("Slot" .. i) or bookGui:FindFirstChild("Code" .. i)
-                            if slot and slot:FindFirstChild("TextLabel") then
-                                code = code .. tostring(slot.TextLabel.Text)
-                            end
-                        end
-                        
-                        if string.len(code) == 5 and not code:find("_") then
-                            entity:FireServer(code)
-                            CustomNotify("БИБЛИОТЕКА", "Код найден и введен автоматически: " .. code)
-                            task.wait(2)
-                        end
-                    end
-                end
-            end)
-        end
-    end
-end)
-
-task.spawn(function()
-    while task.wait(0.1) do
-        if _G.AutoBreakerEnabled and GetCurrentRoomNumber() == 100 then
-            pcall(function()
-                local playerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
-                local mainUI = playerGui:FindFirstChild("MainUI")
+                -- Ищем замок в комнате
+                local room50 = workspace.CurrentRooms:FindFirstChild("50")
+                local padlock = room50 and room50:FindFirstChild("Padlock")
                 
-                -- Проверяем, открыт ли интерфейс мини-игры со щитком
-                if mainUI and mainUI:FindFirstChild("BreakerBox") and mainUI.BreakerBox.Visible then
-                    local box = mainUI.BreakerBox
+                if bookGui and padlock and padlock:FindFirstChild("Remotes") then
+                    local unlockRemote = padlock.Remotes:FindFirstChild("Unlock")
                     
-                    -- Ищем удаленное событие щитка
-                    local remote = Remotes:FindFirstChild("Breaker") or Remotes:FindFirstChild("BreakerBox")
-                    if not remote then
-                        for _, r in pairs(Remotes:GetChildren()) do
-                            if r:IsA("RemoteEvent") and r.Name:lower():find("break") then remote = r break end
+                    -- Собираем полученные из книг символы
+                    local code = ""
+                    for i = 1, 5 do
+                        local slot = bookGui:FindFirstChild("Slot" .. i) or bookGui:FindFirstChild("Code" .. i)
+                        if slot and slot:FindFirstChild("TextLabel") then
+                            code = code .. tostring(slot.TextLabel.Text)
                         end
                     end
                     
-                    if remote then
-                        -- Автоматически эмулируем безошибочное прохождение каждого этапа
-                        for i = 1, 3 do
-                            task.wait(0.1)
-                            remote:FireServer(i, true) -- Сигнализируем серверу об успешном переключении тумблеров
-                        end
-                        CustomNotify("ЩИТОК 100 ДВЕРИ", "Мини-игра успешно решена!")
-                        task.wait(3)
+                    -- Если код собрался полностью (без пустых мест "_")
+                    if string.len(code) == 5 and not code:find("_") and unlockRemote then
+                        unlockRemote:FireServer(code)
+                        CustomNotify("БИБЛИОТЕКА", "Код кодовой двери подобран: " .. code)
+                        task.wait(5)
                     end
                 end
             end)
@@ -647,95 +625,95 @@ task.spawn(function()
 end)
 
 -- =============================================================================
--- 3. ESP ENGINE
+-- 3. ESP ENGINE[cite: 1]
 -- =============================================================================
-local function ApplyESP(object, color, text, id)
-    if not object then return end
+local function ApplyESP(object, color, text, id)[cite: 1]
+    if not object then return end[cite: 1]
     
-    local billboard = object:FindFirstChild("LocalText_" .. id)
-    local highlight = object:FindFirstChild("LocalHighlight_" .. id)
+    local billboard = object:FindFirstChild("LocalText_" .. id)[cite: 1]
+    local highlight = object:FindFirstChild("LocalHighlight_" .. id)[cite: 1]
     
-    local distanceText = ""
-    if _G.ShowDistanceEnabled then
-        local localPlayer = game:GetService("Players").LocalPlayer
-        if localPlayer and localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            local root = localPlayer.Character.HumanoidRootPart
-            local targetPos = object:GetPivot().Position
-            local dist = math.floor((targetPos - root.Position).Magnitude)
-            distanceText = " [" .. dist .. "m]"
+    local distanceText = ""[cite: 1]
+    if _G.ShowDistanceEnabled then[cite: 1]
+        local localPlayer = game:GetService("Players").LocalPlayer[cite: 1]
+        if localPlayer and localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then[cite: 1]
+            local root = localPlayer.Character.HumanoidRootPart[cite: 1]
+            local targetPos = object:GetPivot().Position[cite: 1]
+            local dist = math.floor((targetPos - root.Position).Magnitude)[cite: 1]
+            distanceText = " [" .. dist .. "m]"[cite: 1]
         end
     end
     
-    if billboard and highlight then
-        local label = billboard:FindFirstChildOfClass("TextLabel")
-        if label then 
-            label.Text = text .. distanceText
-            label.TextColor3 = color 
+    if billboard and highlight then[cite: 1]
+        local label = billboard:FindFirstChildOfClass("TextLabel")[cite: 1]
+        if label then[cite: 1]
+            label.Text = text .. distanceText[cite: 1]
+            label.TextColor3 = color[cite: 1]
         end
-        highlight.FillColor = color
-        return 
+        highlight.FillColor = color[cite: 1]
+        return[cite: 1]
     end
     
-    local highlightInstance = Instance.new("Highlight")
-    highlightInstance.Name = "LocalHighlight_" .. id
-    highlightInstance.FillColor = color
-    highlightInstance.FillTransparency = 0.6
-    highlightInstance.OutlineColor = Color3.fromRGB(255, 255, 255)
-    highlightInstance.Adornee = object
-    highlightInstance.Parent = object
+    local highlightInstance = Instance.new("Highlight")[cite: 1]
+    highlightInstance.Name = "LocalHighlight_" .. id[cite: 1]
+    highlightInstance.FillColor = color[cite: 1]
+    highlightInstance.FillTransparency = 0.6[cite: 1]
+    highlightInstance.OutlineColor = Color3.fromRGB(255, 255, 255)[cite: 1]
+    highlightInstance.Adornee = object[cite: 1]
+    highlightInstance.Parent = object[cite: 1]
     
-    local bGui = Instance.new("BillboardGui")
-    bGui.Name = "LocalText_" .. id
-    bGui.Size = UDim2.new(0, 200, 0, 40)
-    bGui.AlwaysOnTop = true
-    bGui.StudsOffset = Vector3.new(0, 2.5, 0)
-    bGui.Parent = object
+    local bGui = Instance.new("BillboardGui")[cite: 1]
+    bGui.Name = "LocalText_" .. id[cite: 1]
+    bGui.Size = UDim2.new(0, 200, 0, 40)[cite: 1]
+    bGui.AlwaysOnTop = true[cite: 1]
+    bGui.StudsOffset = Vector3.new(0, 2.5, 0)[cite: 1]
+    bGui.Parent = object[cite: 1]
     
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, 0, 1, 0)
-    label.BackgroundTransparency = 1
-    label.Text = text .. distanceText
-    label.TextColor3 = color 
-    label.Font = Enum.Font.SourceSansBold
-    label.TextSize = 14
-    label.Parent = bGui
+    local label = Instance.new("TextLabel")[cite: 1]
+    label.Size = UDim2.new(1, 0, 1, 0)[cite: 1]
+    label.BackgroundTransparency = 1[cite: 1]
+    label.Text = text .. distanceText[cite: 1]
+    label.TextColor3 = color[cite: 1]
+    label.Font = Enum.Font.SourceSansBold[cite: 1]
+    label.TextSize = 14[cite: 1]
+    label.Parent = bGui[cite: 1]
 end
 
-local function RemoveESP(object, id)
-    if not object then return end
-    local highlight = object:FindFirstChild("LocalHighlight_" .. id)
-    local billboard = object:FindFirstChild("LocalText_" .. id)
-    if highlight then highlight:Destroy() end
-    if billboard then billboard:Destroy() end
+local function RemoveESP(object, id)[cite: 1]
+    if not object then return end[cite: 1]
+    local highlight = object:FindFirstChild("LocalHighlight_" .. id)[cite: 1]
+    local billboard = object:FindFirstChild("LocalText_" .. id)[cite: 1]
+    if highlight then highlight:Destroy() end[cite: 1]
+    if billboard then billboard:Destroy() end[cite: 1]
 end
 
 -- =============================================================================
--- 4. ЦИКЛЫ СКАНИРОВАНИЯ И АВТО-ОЧИСТКИ
+-- 4. ЦИКЛЫ СКАНИРОВАНИЯ И АВТО-ОЧИСТКИ[cite: 1]
 -- =============================================================================
 task.spawn(function()
     while task.wait(0.3) do
         pcall(function()
-            local rooms = workspace:FindFirstChild("CurrentRooms")
-            local currentRoomNum = GetCurrentRoomNumber()
-            if rooms then
-                for _, room in pairs(rooms:GetChildren()) do
-                    local roomNum = tonumber(room.Name) or 0
-                    local door = room:FindFirstChild("Door")
-                    if door then
-                        local actualDoor = door:FindFirstChild("Door") or door
-                        if roomNum < currentRoomNum then
-                            RemoveESP(actualDoor, "Door")
-                        elseif _G.DoorEspEnabled then
-                            local correctedName = tostring(roomNum + 1)
-                            local isLocked = door:FindFirstChild("Lock") or door:FindFirstChild("KeyLock")
-                            local espColor = Colors.Door
-                            local espText = "🚪 Дверь " .. correctedName
-                            if isLocked then
-                                espColor = Color3.fromRGB(255, 50, 50)
-                                espText = "🔒 Закрытая Дверь " .. correctedName
+            local rooms = workspace:FindFirstChild("CurrentRooms")[cite: 1]
+            local currentRoomNum = GetCurrentRoomNumber()[cite: 1]
+            if rooms then[cite: 1]
+                for _, room in pairs(rooms:GetChildren()) do[cite: 1]
+                    local roomNum = tonumber(room.Name) or 0[cite: 1]
+                    local door = room:FindFirstChild("Door")[cite: 1]
+                    if door then[cite: 1]
+                        local actualDoor = door:FindFirstChild("Door") or door[cite: 1]
+                        if roomNum < currentRoomNum then[cite: 1]
+                            RemoveESP(actualDoor, "Door")[cite: 1]
+                        elseif _G.DoorEspEnabled then[cite: 1]
+                            local correctedName = tostring(roomNum + 1)[cite: 1]
+                            local isLocked = door:FindFirstChild("Lock") or door:FindFirstChild("KeyLock")[cite: 1]
+                            local espColor = Colors.Door[cite: 1]
+                            local espText = "🚪 Дверь " .. correctedName[cite: 1]
+                            if isLocked then[cite: 1]
+                                espColor = Color3.fromRGB(255, 50, 50)[cite: 1]
+                                espText = "🔒 Закрытая Дверь " .. correctedName[cite: 1]
                             end
-                            ApplyESP(actualDoor, espColor, espText, "Door")
-                        else RemoveESP(actualDoor, "Door") end
+                            ApplyESP(actualDoor, espColor, espText, "Door")[cite: 1]
+                        else RemoveESP(actualDoor, "Door") end[cite: 1]
                     end
                 end
             end
@@ -746,14 +724,14 @@ end)
 task.spawn(function()
     while task.wait(0.2) do
         pcall(function()
-            if _G.MonsterEspEnabled then
-                for _, child in pairs(workspace:GetChildren()) do
-                    if MonsterNames[child.Name] then 
-                        ApplyESP(child, Colors.Monster, "⚠️ " .. MonsterNames[child.Name], "Monster") 
+            if _G.MonsterEspEnabled then[cite: 1]
+                for _, child in pairs(workspace:GetChildren()) do[cite: 1]
+                    if MonsterNames[child.Name] then[cite: 1]
+                        ApplyESP(child, Colors.Monster, "⚠️ " .. MonsterNames[child.Name], "Monster")[cite: 1]
                     end
                 end
             else
-                for _, child in pairs(workspace:GetChildren()) do RemoveESP(child, "Monster") end
+                for _, child in pairs(workspace:GetChildren()) do RemoveESP(child, "Monster") end[cite: 1]
             end
         end)
     end
@@ -762,25 +740,25 @@ end)
 task.spawn(function()
     while task.wait(0.3) do
         pcall(function()
-            local rooms = workspace:FindFirstChild("CurrentRooms")
-            local currentRoomNum = GetCurrentRoomNumber()
-            if rooms then
-                for _, room in pairs(rooms:GetChildren()) do
-                    local roomNum = tonumber(room.Name) or 0
-                    for _, asset in pairs(room:GetDescendants()) do
-                        if roomNum < currentRoomNum then
-                            RemoveESP(asset, "Item")
-                        elseif _G.ItemEspEnabled then
-                            if asset.Name == "KeyObtain" then ApplyESP(asset, Colors.Item, "🔑 Ключ", "Item")
-                            elseif asset.Name == "LeverForGate" then ApplyESP(asset, Colors.Item, "⚙️ Рычаг", "Item")
-                            elseif asset.Name == "LiveHintBook" then ApplyESP(asset, Colors.Item, "📘 Книга", "Item")
-                            elseif asset.Name == "GoldPile" then ApplyESP(asset, Colors.Item, "💰 Золото", "Item")
-                            elseif asset.Name == "LiveFuseElement" then ApplyESP(asset, Colors.Item, "🔋 Предохранитель", "Item")
-                            elseif asset.Name == "ChestBox" or asset.Name == "ChestBoxLocked" then
-                                local label = asset.Name == "ChestBoxLocked" and "🔒 Закрытый Сундук" or "📦 Сундук"
-                                ApplyESP(asset, Colors.Item, label, "Item")
+            local rooms = workspace:FindFirstChild("CurrentRooms")[cite: 1]
+            local currentRoomNum = GetCurrentRoomNumber()[cite: 1]
+            if rooms then[cite: 1]
+                for _, room in pairs(rooms:GetChildren()) do[cite: 1]
+                    local roomNum = tonumber(room.Name) or 0[cite: 1]
+                    for _, asset in pairs(room:GetDescendants()) do[cite: 1]
+                        if roomNum < currentRoomNum then[cite: 1]
+                            RemoveESP(asset, "Item")[cite: 1]
+                        elseif _G.ItemEspEnabled then[cite: 1]
+                            if asset.Name == "KeyObtain" then ApplyESP(asset, Colors.Item, "🔑 Ключ", "Item")[cite: 1]
+                            elseif asset.Name == "LeverForGate" then ApplyESP(asset, Colors.Item, "⚙️ Рычаг", "Item")[cite: 1]
+                            elseif asset.Name == "LiveHintBook" then ApplyESP(asset, Colors.Item, "📘 Книга", "Item")[cite: 1]
+                            elseif asset.Name == "GoldPile" then ApplyESP(asset, Colors.Item, "💰 Золото", "Item")[cite: 1]
+                            elseif asset.Name == "LiveFuseElement" then ApplyESP(asset, Colors.Item, "🔋 Предохранитель", "Item")[cite: 1]
+                            elseif asset.Name == "ChestBox" or asset.Name == "ChestBoxLocked" then[cite: 1]
+                                local label = asset.Name == "ChestBoxLocked" and "🔒 Закрытый Сундук" or "📦 Сундук"[cite: 1]
+                                ApplyESP(asset, Colors.Item, label, "Item")[cite: 1]
                             end
-                        else RemoveESP(asset, "Item") end
+                        else RemoveESP(asset, "Item") end[cite: 1]
                     end
                 end
             end
@@ -791,18 +769,18 @@ end)
 task.spawn(function()
     while task.wait(0.4) do
         pcall(function()
-            local rooms = workspace:FindFirstChild("CurrentRooms")
-            local currentRoomNum = GetCurrentRoomNumber()
-            if rooms then
-                for _, room in pairs(rooms:GetChildren()) do
-                    local roomNum = tonumber(room.Name) or 0
-                    for _, asset in pairs(room:GetDescendants()) do
-                        if roomNum < currentRoomNum then
-                            RemoveESP(asset, "Hiding")
-                        elseif _G.HidingEspEnabled then
-                            if asset.Name == "Wardrobe" then ApplyESP(asset, Colors.Hiding, "🚪 Шкаф", "Hiding")
-                            elseif asset.Name == "Bed" then ApplyESP(asset, Colors.Hiding, "🛏️ Кровать", "Hiding") end
-                        else RemoveESP(asset, "Hiding") end
+            local rooms = workspace:FindFirstChild("CurrentRooms")[cite: 1]
+            local currentRoomNum = GetCurrentRoomNumber()[cite: 1]
+            if rooms then[cite: 1]
+                for _, room in pairs(rooms:GetChildren()) do[cite: 1]
+                    local roomNum = tonumber(room.Name) or 0[cite: 1]
+                    for _, asset in pairs(room:GetDescendants()) do[cite: 1]
+                        if roomNum < currentRoomNum then[cite: 1]
+                            RemoveESP(asset, "Hiding")[cite: 1]
+                        elseif _G.HidingEspEnabled then[cite: 1]
+                            if asset.Name == "Wardrobe" then ApplyESP(asset, Colors.Hiding, "🚪 Шкаф", "Hiding")[cite: 1]
+                            elseif asset.Name == "Bed" then ApplyESP(asset, Colors.Hiding, "🛏️ Кровать", "Hiding") end[cite: 1]
+                        else RemoveESP(asset, "Hiding") end[cite: 1]
                     end
                 end
             end
@@ -810,46 +788,46 @@ task.spawn(function()
     end
 end)
 
-workspace.ChildAdded:Connect(function(child)
+workspace.ChildAdded:Connect(function(child)[cite: 1]
     pcall(function()
-        if MonsterNames[child.Name] then
-            CustomNotify("🚨 ОБНАРУЖЕН МОНСТР!", "В игру зашел: " .. MonsterNames[child.Name])
-            if _G.MonsterEspEnabled then
-                task.wait(0.1)
-                ApplyESP(child, Colors.Monster, "⚠️ " .. MonsterNames[child.Name], "Monster")
+        if MonsterNames[child.Name] then[cite: 1]
+            CustomNotify("🚨 ОБНАРУЖЕН МОНСТР!", "В игру зашел: " .. MonsterNames[child.Name])[cite: 1]
+            if _G.MonsterEspEnabled then[cite: 1]
+                task.wait(0.1)[cite: 1]
+                ApplyESP(child, Colors.Monster, "⚠️ " .. MonsterNames[child.Name], "Monster")[cite: 1]
             end
         end
     end)
 end)
 
 -- =============================================================================
--- 5. УПРАВЛЕНИЕ КНОПКАМИ И ТУМБЛЕРАМИ
+-- 5. УПРАВЛЕНИЕ КНОПКАМИ И ТУМБЛЕРАМИ[cite: 1]
 -- =============================================================================
-local function ToggleState(btn, flagName, textOn, textOff)
-    _G[flagName] = not _G[flagName]
-    if _G[flagName] then
-        btn.Text = textOn
-        btn.BackgroundColor3 = Color3.fromRGB(40, 150, 40)
+local function ToggleState(btn, flagName, textOn, textOff)[cite: 1]
+    _G[flagName] = not _G[flagName][cite: 1]
+    if _G[flagName] then[cite: 1]
+        btn.Text = textOn[cite: 1]
+        btn.BackgroundColor3 = Color3.fromRGB(40, 150, 40)[cite: 1]
     else
-        btn.Text = textOff
-        btn.BackgroundColor3 = Color3.fromRGB(150, 40, 40)
+        btn.Text = textOff[cite: 1]
+        btn.BackgroundColor3 = Color3.fromRGB(150, 40, 40)[cite: 1]
     end
 end
 
-DoorButton.MouseButton1Click:Connect(function() ToggleState(DoorButton, "DoorEspEnabled", "ESP ДВЕРЕЙ: ВКЛ", "ESP ДВЕРЕЙ: ВЫКЛ") end)
-MonsterButton.MouseButton1Click:Connect(function() ToggleState(MonsterButton, "MonsterEspEnabled", "ESP МОНСТРОВ: ВКЛ", "ESP МОНСТРОВ: ВЫКЛ") end)
-ItemButton.MouseButton1Click:Connect(function() ToggleState(ItemButton, "ItemEspEnabled", "ESP ПРЕДМЕТОВ: ВКЛ", "ESP ПРЕДМЕТОВ: ВЫКЛ") end)
-HidingButton.MouseButton1Click:Connect(function() ToggleState(HidingButton, "HidingEspEnabled", "ESP УКРЫТИЙ: ВКЛ", "ESP УКРЫТИЙ: ВЫКЛ") end)
-DistanceButton.MouseButton1Click:Connect(function() ToggleState(DistanceButton, "ShowDistanceEnabled", "ДИСТАНЦИЯ ЕСП: ВКЛ", "ДИСТАНЦИЯ ЕСП: ВЫКЛ") end)
-SpeedButton.MouseButton1Click:Connect(function() ToggleState(SpeedButton, "SpeedHackEnabled", "УСКОРЕНИЕ: ВКЛ", "УСКОРЕНИЕ: ВЫКЛ") end)
-AntiHearingButton.MouseButton1Click:Connect(function() ToggleState(AntiHearingButton, "AntiHearingEnabled", "АНТИ-СЛУХ ФИГУРЫ: ВКЛ", "АНТИ-СЛУХ ФИГУРЫ: ВЫКЛ") end)
+DoorButton.MouseButton1Click:Connect(function() ToggleState(DoorButton, "DoorEspEnabled", "ESP ДВЕРЕЙ: ВКЛ", "ESP ДВЕРЕЙ: ВЫКЛ") end)[cite: 1]
+MonsterButton.MouseButton1Click:Connect(function() ToggleState(MonsterButton, "MonsterEspEnabled", "ESP МОНСТРОВ: ВКЛ", "ESP МОНСТРОВ: ВЫКЛ") end)[cite: 1]
+ItemButton.MouseButton1Click:Connect(function() ToggleState(ItemButton, "ItemEspEnabled", "ESP ПРЕДМЕТОВ: ВКЛ", "ESP ПРЕДМЕТОВ: ВЫКЛ") end)[cite: 1]
+HidingButton.MouseButton1Click:Connect(function() ToggleState(HidingButton, "HidingEspEnabled", "ESP УКРЫТИЙ: ВКЛ", "ESP УКРЫТИЙ: ВЫКЛ") end)[cite: 1]
+DistanceButton.MouseButton1Click:Connect(function() ToggleState(DistanceButton, "ShowDistanceEnabled", "ДИСТАНЦИЯ ЕСП: ВКЛ", "ДИСТАНЦИЯ ЕСП: ВЫКЛ") end)[cite: 1]
+SpeedButton.MouseButton1Click:Connect(function() ToggleState(SpeedButton, "SpeedHackEnabled", "УСКОРЕНИЕ: ВКЛ", "УСКОРЕНИЕ: ВЫКЛ") end)[cite: 1]
+AntiHearingButton.MouseButton1Click:Connect(function() ToggleState(AntiHearingButton, "AntiHearingEnabled", "АНТИ-СЛУХ ФИГУРЫ: ВКЛ", "АНТИ-СЛУХ ФИГУРЫ: ВЫКЛ") end)[cite: 1]
 AutoLibraryButton.MouseButton1Click:Connect(function() ToggleState(AutoLibraryButton, "AutoLibraryEnabled", "АВТО-КОД БИБЛИОТЕКИ: ВКЛ", "АВТО-КОД БИБЛИОТЕКИ: ВЫКЛ") end)
-AutoBreakerButton.MouseButton1Click:Connect(function() ToggleState(AutoBreakerButton, "AutoBreakerEnabled", "АВТО-ЩИТОК (ДВЕРЬ 100): ВКЛ", "АВТО-ЩИТОК (ДВЕРЬ 100): ВЫКЛ") end)
+AutoBreakerButton.MouseButton1Click:Connect(function() ToggleState(AutoBreakerButton, "AutoBreakerEnabled", "АВТО-ЩИТОК (100 ДВЕРЬ): ВКЛ", "АВТО-ЩИТОК (100 ДВЕРЬ): ВЫКЛ") end)
 
-FullbrightButton.MouseButton1Click:Connect(function()
-    ToggleState(FullbrightButton, "FullbrightEnabled", "ФУЛЛБРАЙТ: ВКЛ", "ФУЛЛБРАЙТ: ВЫКЛ")
-    ApplyFullbright(_G.FullbrightEnabled)
-end)
-NotifToggleButton.MouseButton1Click:Connect(function() ToggleState(NotifToggleButton, "NotificationsEnabled", "УВЕДОМЛЕНИЯ: ВКЛ", "УВЕДОМЛЕНИЯ: ВЫКЛ") end)
+FullbrightButton.MouseButton1Click:Connect(function()[cite: 1]
+    ToggleState(FullbrightButton, "FullbrightEnabled", "ФУЛЛБРАЙТ: ВКЛ", "ФУЛЛБРАЙТ: ВЫКЛ")[cite: 1]
+    ApplyFullbright(_G.FullbrightEnabled)[cite: 1]
+end)[cite: 1]
+NotifToggleButton.MouseButton1Click:Connect(function() ToggleState(NotifToggleButton, "NotificationsEnabled", "УВЕДОМЛЕНИЯ: ВКЛ", "УВЕДОМЛЕНИЯ: ВЫКЛ") end)[cite: 1]
 
-CustomNotify("SYSTEM", "Ocel-hub v14.0 успешно запущен!")
+CustomNotify("SYSTEM", "Ocel-hub v14.1 успешно запущен!")[cite: 1]
