@@ -12,8 +12,7 @@ _G.ItemEspEnabled = false
 _G.HidingEspEnabled = false
 _G.NotificationsEnabled = true
 _G.FullbrightEnabled = false
-_G.AutoInteract = false
-_G.InteractRange = 15
+_G.DistanceEspEnabled = false
 
 -- Цвета обводок и кастомного текста
 local Colors = {
@@ -277,7 +276,7 @@ local function OpenPicker(colorKey)
     if currentActiveKey == colorKey then ClosePicker() else
         currentActiveKey = colorKey
         PickerPanel.Visible = true
-        MainFrame:TweenSize(UDim2.new(0, 390, 0, 330), "Out", "Quart", 0.25, true)
+        MainFrame:TweenSize(UDim2.new(0, 390, 0, 372), "Out", "Quart", 0.25, true)
     end
 end
 
@@ -360,15 +359,12 @@ local DoorButton = CreateEspControl("ESP ДВЕРЕЙ", "Door")
 local MonsterButton = CreateEspControl("ESP МОНСТРОВ", "Monster")
 local ItemButton = CreateEspControl("ESP ПРЕДМЕТОВ", "Item")
 local HidingButton = CreateEspControl("ESP УКРЫТИЙ", "Hiding")
+local DistanceButton = CreateEspControl("ДИСТАНЦИЯ ESP", "Door")
 local FullbrightButton = CreateEspControl("ФУЛЛБРАЙТ", "Fullbright")
 local NotifToggleButton = CreateEspControl("УВЕДОМЛЕНИЯ", "TextNotif")
-local InteractButton = CreateEspControl("АВТО-ИНТЕРАКТ", "TextNotif")
 
 NotifToggleButton.Text = "УВЕДОМЛЕНИЯ: ВКЛ"
 NotifToggleButton.BackgroundColor3 = Color3.fromRGB(40, 150, 40)
-
-InteractButton.Text = "АВТО-ИНТЕРАКТ: ВЫКЛ"
-InteractButton.BackgroundColor3 = Color3.fromRGB(150, 40, 40)
 
 -- FOV строка
 local FovRow = Instance.new("Frame")
@@ -443,15 +439,34 @@ end)
 -- =============================================================================
 -- 2. ESP ENGINE
 -- =============================================================================
+
+-- Возвращает дистанцию от персонажа до объекта в виде строки " | Xm"
+local function GetDistanceSuffix(object)
+    if not _G.DistanceEspEnabled then return "" end
+    local player = game:GetService("Players").LocalPlayer
+    if not player then return "" end
+    local character = player.Character
+    if not character then return "" end
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    if not rootPart then return "" end
+    -- Ищем любую BasePart в объекте (или сам объект)
+    local part = object:IsA("BasePart") and object or object:FindFirstChildOfClass("BasePart")
+    if not part then return "" end
+    local dist = math.floor((rootPart.Position - part.Position).Magnitude)
+    return " | " .. dist .. "m"
+end
+
 local function ApplyESP(object, color, text, id)
     if not object then return end
+    local distSuffix = GetDistanceSuffix(object)
+    local fullText = text .. distSuffix
     local billboard = object:FindFirstChild("LocalText_" .. id)
     local highlight = object:FindFirstChild("LocalHighlight_" .. id)
     
     if billboard and highlight then
         local label = billboard:FindFirstChildOfClass("TextLabel")
         if label then 
-            label.Text = text
+            label.Text = fullText
             label.TextColor3 = color 
         end
         highlight.FillColor = color
@@ -476,7 +491,7 @@ local function ApplyESP(object, color, text, id)
     local label = Instance.new("TextLabel")
     label.Size = UDim2.new(1, 0, 1, 0)
     label.BackgroundTransparency = 1
-    label.Text = text
+    label.Text = fullText
     label.TextColor3 = color 
     label.Font = Enum.Font.SourceSansBold
     label.TextSize = 15
@@ -621,36 +636,11 @@ DoorButton.MouseButton1Click:Connect(function() ToggleState(DoorButton, "DoorEsp
 MonsterButton.MouseButton1Click:Connect(function() ToggleState(MonsterButton, "MonsterEspEnabled", "ESP МОНСТРОВ: ВКЛ", "ESP МОНСТРОВ: ВЫКЛ") end)
 ItemButton.MouseButton1Click:Connect(function() ToggleState(ItemButton, "ItemEspEnabled", "ESP ПРЕДМЕТОВ: ВКЛ", "ESP ПРЕДМЕТОВ: ВЫКЛ") end)
 HidingButton.MouseButton1Click:Connect(function() ToggleState(HidingButton, "HidingEspEnabled", "ESP УКРЫТИЙ: ВКЛ", "ESP УКРЫТИЙ: ВЫКЛ") end)
+DistanceButton.MouseButton1Click:Connect(function() ToggleState(DistanceButton, "DistanceEspEnabled", "ДИСТАНЦИЯ ESP: ВКЛ", "ДИСТАНЦИЯ ESP: ВЫКЛ") end)
 FullbrightButton.MouseButton1Click:Connect(function()
     ToggleState(FullbrightButton, "FullbrightEnabled", "ФУЛЛБРАЙТ: ВКЛ", "ФУЛЛБРАЙТ: ВЫКЛ")
     ApplyFullbright(_G.FullbrightEnabled)
 end)
 NotifToggleButton.MouseButton1Click:Connect(function() ToggleState(NotifToggleButton, "NotificationsEnabled", "УВЕДОМЛЕНИЯ: ВКЛ", "УВЕДОМЛЕНИЯ: ВЫКЛ") end)
-InteractButton.MouseButton1Click:Connect(function() ToggleState(InteractButton, "AutoInteract", "АВТО-ИНТЕРАКТ: ВКЛ", "АВТО-ИНТЕРАКТ: ВЫКЛ") end)
-
--- =============================================================================
--- 5. АВТО-ИНТЕРАКТ
--- =============================================================================
-task.spawn(function()
-    while task.wait(0.2) do
-        if _G.AutoInteract then
-            pcall(function()
-                local char = game:GetService("Players").LocalPlayer.Character
-                local root = char and char:FindFirstChild("HumanoidRootPart")
-                if root then
-                    for _, obj in pairs(workspace:GetDescendants()) do
-                        if obj:IsA("ProximityPrompt") and obj.Enabled then
-                            local distance = (obj.Parent:GetPivot().Position - root.Position).Magnitude
-                            if distance <= _G.InteractRange then
-                                fireproximityprompt(obj)
-                                task.wait(0.05)
-                            end
-                        end
-                    end
-                end
-            end)
-        end
-    end
-end)
 
 CustomNotify("SYSTEM", "Ocel-hub v12.3 успешно запущен!")
