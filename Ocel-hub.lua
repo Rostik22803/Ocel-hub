@@ -13,6 +13,8 @@ _G.HidingEspEnabled = false
 _G.NotificationsEnabled = true
 _G.FullbrightEnabled = false
 _G.AutoPickupEnabled = false
+_G.AutoDoorKeyEnabled = false
+_G.AutoDrawerEnabled = false
 
 -- Цвета обводок и кастомного текста
 local Colors = {
@@ -180,7 +182,7 @@ end)
 
 -- Главное окно меню
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 240, 0, 370)
+MainFrame.Size = UDim2.new(0, 240, 0, 450)
 MainFrame.Position = UDim2.new(0.1, 0, 0.1, 0)
 MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 MainFrame.Active = true
@@ -223,7 +225,7 @@ Instance.new("UICorner", MinimizeBtn).CornerRadius = UDim.new(0, 4)
 
 -- Контейнер для кнопок
 local ButtonContainer = Instance.new("Frame")
-ButtonContainer.Size = UDim2.new(0, 240, 0, 330)
+ButtonContainer.Size = UDim2.new(0, 240, 0, 410)
 ButtonContainer.Position = UDim2.new(0, 0, 0, 35)
 ButtonContainer.BackgroundTransparency = 1
 ButtonContainer.Parent = MainFrame
@@ -269,7 +271,7 @@ local currentActiveKey = nil
 local function ClosePicker()
     currentActiveKey = nil
     PickerPanel.Visible = false
-    MainFrame:TweenSize(UDim2.new(0, 240, 0, 370), "In", "Quart", 0.25, true)
+    MainFrame:TweenSize(UDim2.new(0, 240, 0, 450), "In", "Quart", 0.25, true)
 end
 
 local function OpenPicker(colorKey)
@@ -290,7 +292,7 @@ MinimizeBtn.MouseButton1Click:Connect(function()
         MainFrame:TweenSize(UDim2.new(0, 240, 0, 35), "Out", "Quart", 0.25, true)
     else
         MinimizeBtn.Text = "—"
-        MainFrame:TweenSize(UDim2.new(0, 240, 0, 370), "Out", "Quart", 0.25, true)
+        MainFrame:TweenSize(UDim2.new(0, 240, 0, 450), "Out", "Quart", 0.25, true)
     end
 end)
 
@@ -362,6 +364,8 @@ local HidingButton = CreateEspControl("ESP УКРЫТИЙ", "Hiding")
 local FullbrightButton = CreateEspControl("ФУЛЛБРАЙТ", "Fullbright")
 local NotifToggleButton = CreateEspControl("УВЕДОМЛЕНИЯ", "TextNotif")
 local AutoPickupButton = CreateEspControl("АВТО-ПОДБОР ПРЕДМЕТОВ", "Item")
+local AutoDoorKeyButton = CreateEspControl("АВТО-ОТКРЫТИЕ ДВЕРИ", "Door")
+local AutoDrawerButton = CreateEspControl("АВТО-ОТКРЫТИЕ ТУМБОЧЕК", "Item")
 
 NotifToggleButton.Text = "УВЕДОМЛЕНИЯ: ВКЛ"
 NotifToggleButton.BackgroundColor3 = Color3.fromRGB(40, 150, 40)
@@ -623,21 +627,60 @@ FullbrightButton.MouseButton1Click:Connect(function()
 end)
 NotifToggleButton.MouseButton1Click:Connect(function() ToggleState(NotifToggleButton, "NotificationsEnabled", "УВЕДОМЛЕНИЯ: ВКЛ", "УВЕДОМЛЕНИЯ: ВЫКЛ") end)
 AutoPickupButton.MouseButton1Click:Connect(function() ToggleState(AutoPickupButton, "AutoPickupEnabled", "АВТО-ПОДБОР ПРЕДМЕТОВ: ВКЛ", "АВТО-ПОДБОР ПРЕДМЕТОВ: ВЫКЛ") end)
+AutoDoorKeyButton.MouseButton1Click:Connect(function() ToggleState(AutoDoorKeyButton, "AutoDoorKeyEnabled", "АВТО-ОТКРЫТИЕ ДВЕРИ: ВКЛ", "АВТО-ОТКРЫТИЕ ДВЕРИ: ВЫКЛ") end)
+AutoDrawerButton.MouseButton1Click:Connect(function() ToggleState(AutoDrawerButton, "AutoDrawerEnabled", "АВТО-ОТКРЫТИЕ ТУМБОЧЕК: ВКЛ", "АВТО-ОТКРЫТИЕ ТУМБОЧЕК: ВЫКЛ") end)
 
 -- =============================================================================
--- 5. АВТО-ПОДБОР ПРЕДМЕТОВ
+-- 5. АВТО-ВЗАИМОДЕЙСТВИЕ (подбор предметов, ключ к двери, тумбочки)
 -- =============================================================================
-local PICKUP_DISTANCE = 15 -- максимальная дистанция для авто-подбора (в студах)
-local pickedUpItems = {} -- таблица уже подобранных предметов
 
--- Список предметов: имя объекта в игре → название для уведомления
-local AutoPickupItems = {
+local interactedSet = {} -- объекты с которыми уже взаимодействовали
+
+-- Найти позицию объекта (BasePart или Model)
+local function ObjPos(obj)
+    if obj:IsA("BasePart") then return obj.Position end
+    if obj:IsA("Model") then
+        local p = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
+        if p then return p.Position end
+    end
+    return nil
+end
+
+-- Телепортировать HRP к позиции, подождать физику, взаимодействовать
+local function TeleportAndFire(hrp, targetPos, obj)
+    local orig = hrp.CFrame
+    hrp.CFrame = CFrame.new(targetPos + Vector3.new(0, 3, 0))
+    task.wait(0.1)
+
+    -- 1) ProximityPrompt
+    for _, v in pairs(obj:GetDescendants()) do
+        if v:IsA("ProximityPrompt") and v.Enabled then
+            fireproximityprompt(v)
+        end
+    end
+    -- 2) ClickDetector
+    for _, v in pairs(obj:GetDescendants()) do
+        if v:IsA("ClickDetector") then
+            fireclickdetector(v)
+        end
+    end
+
+    task.wait(0.05)
+    hrp.CFrame = orig
+end
+
+-- Проверить что объект ещё существует и не подобран
+local function IsAlive(obj)
+    return obj and obj.Parent ~= nil
+end
+
+-- Имена предметов для подбора
+local PickupNames = {
     ["KeyObtain"]       = "🔑 Ключ",
     ["GoldPile"]        = "💰 Золото",
     ["LiveHintBook"]    = "📘 Книга",
     ["LiveFuseElement"] = "🔋 Предохранитель",
     ["LeverForGate"]    = "⚙️ Рычаг",
-    ["ChestBox"]        = "📦 Сундук",
     ["Lighter"]         = "🔥 Зажигалка",
     ["Flashlight"]      = "🔦 Фонарик",
     ["Crucifix"]        = "✝️ Распятие",
@@ -646,85 +689,172 @@ local AutoPickupItems = {
     ["Shears"]          = "✂️ Ножницы",
     ["Bandage"]         = "🩹 Бинт",
     ["Vitamins"]        = "💊 Витамины",
+    ["ChestBox"]        = "📦 Сундук",
+    ["ChestBoxLocked"]  = "🔒 Сундук (закрытый)",
 }
 
--- Вспомогательная: найти позицию объекта
-local function GetObjectPosition(obj)
-    if obj:IsA("BasePart") then
-        return obj.Position
-    elseif obj:IsA("Model") then
-        local p = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
-        if p then return p.Position end
-    end
-    return nil
-end
+-- Имена тумбочек/комодов
+local DrawerNames = {
+    ["Drawer"]       = true,
+    ["Dresser"]      = true,
+    ["Nightstand"]   = true,
+    ["Cabinet"]      = true,
+    ["SmallDrawer"]  = true,
+    ["Desk"]         = true,
+}
 
--- Вспомогательная: попробовать взаимодействовать со всеми промптами/кликдетекторами объекта
-local function TryInteract(obj)
-    local interacted = false
-    -- ProximityPrompt (основной способ в DOORS)
-    for _, prompt in pairs(obj:GetDescendants()) do
-        if prompt:IsA("ProximityPrompt") and prompt.Enabled then
-            fireproximityprompt(prompt)
-            interacted = true
-        end
-    end
-    -- ClickDetector как запасной вариант
-    if not interacted then
-        for _, cd in pairs(obj:GetDescendants()) do
-            if cd:IsA("ClickDetector") then
-                fireclickdetector(cd)
-                interacted = true
-            end
-        end
-    end
-    return interacted
-end
-
+-- -----------------------------------------------
+-- Цикл: авто-подбор предметов
+-- -----------------------------------------------
 task.spawn(function()
-    while task.wait(0.15) do
+    while task.wait(0.2) do
         pcall(function()
             if not _G.AutoPickupEnabled then return end
 
             local player = game:GetService("Players").LocalPlayer
-            local character = player.Character
-            if not character then return end
-            local hrp = character:FindFirstChild("HumanoidRootPart")
+            local char = player.Character
+            if not char then return end
+            local hrp = char:FindFirstChild("HumanoidRootPart")
             if not hrp then return end
 
             local rooms = workspace:FindFirstChild("CurrentRooms")
             if not rooms then return end
-
-            local currentRoomNum = GetCurrentRoomNumber()
+            local curRoom = GetCurrentRoomNumber()
 
             for _, room in pairs(rooms:GetChildren()) do
-                local roomNum = tonumber(room.Name) or 0
-                -- Ищем только в текущей и соседних комнатах
-                if math.abs(roomNum - currentRoomNum) > 2 then continue end
+                local rn = tonumber(room.Name) or 0
+                if math.abs(rn - curRoom) > 2 then continue end
 
                 for _, obj in pairs(room:GetDescendants()) do
-                    local itemLabel = AutoPickupItems[obj.Name]
-                    if not itemLabel then continue end
+                    local label = PickupNames[obj.Name]
+                    if not label then continue end
+                    if not IsAlive(obj) then continue end
 
-                    -- Уникальный ID чтобы не подбирать один предмет дважды
-                    local itemId = obj:GetFullName()
-                    if pickedUpItems[itemId] then continue end
+                    local id = tostring(obj:GetFullName())
+                    if interactedSet[id] then continue end
 
-                    local pos = GetObjectPosition(obj)
+                    local pos = ObjPos(obj)
                     if not pos then continue end
 
-                    local dist = (hrp.Position - pos).Magnitude
-                    if dist <= PICKUP_DISTANCE then
-                        local ok = TryInteract(obj)
-                        if ok then
-                            pickedUpItems[itemId] = true
-                            CustomNotify("✅ АВТО-ПОДБОР", "Подобран: " .. itemLabel)
-                            -- Сбрасываем запись через 30 сек на случай респавна
-                            task.delay(30, function()
-                                pickedUpItems[itemId] = nil
-                            end)
-                        end
-                    end
+                    interactedSet[id] = true
+                    task.spawn(function()
+                        TeleportAndFire(hrp, pos, obj)
+                        CustomNotify("✅ АВТО-ПОДБОР", "Подобран: " .. label)
+                        -- Сброс через 20 сек на случай если предмет не подобрался
+                        task.delay(20, function()
+                            interactedSet[id] = nil
+                        end)
+                    end)
+                end
+            end
+        end)
+    end
+end)
+
+-- -----------------------------------------------
+-- Цикл: авто-открытие двери ключом
+-- -----------------------------------------------
+task.spawn(function()
+    while task.wait(0.3) do
+        pcall(function()
+            if not _G.AutoDoorKeyEnabled then return end
+
+            local player = game:GetService("Players").LocalPlayer
+            local char = player.Character
+            if not char then return end
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            if not hrp then return end
+
+            local rooms = workspace:FindFirstChild("CurrentRooms")
+            if not rooms then return end
+            local curRoom = GetCurrentRoomNumber()
+
+            for _, room in pairs(rooms:GetChildren()) do
+                local rn = tonumber(room.Name) or 0
+                -- Только текущая и следующая комната
+                if rn < curRoom or rn > curRoom + 2 then continue end
+
+                local doorFolder = room:FindFirstChild("Door")
+                if not doorFolder then continue end
+
+                -- Проверяем что дверь заперта (KeyLock или Lock)
+                local lock = doorFolder:FindFirstChild("KeyLock")
+                    or doorFolder:FindFirstChild("Lock")
+                    or doorFolder:FindFirstChildWhichIsA("Model", true)
+                if not lock then continue end
+
+                local doorId = "door_" .. tostring(rn)
+                if interactedSet[doorId] then continue end
+
+                -- Ищем ProximityPrompt или ClickDetector на замке/двери
+                local prompt = doorFolder:FindFirstChildOfClass("ProximityPrompt", true)
+                local cd = doorFolder:FindFirstChildOfClass("ClickDetector", true)
+                if not prompt and not cd then continue end
+
+                local pos = ObjPos(doorFolder) or ObjPos(room)
+                if not pos then continue end
+
+                interactedSet[doorId] = true
+                task.spawn(function()
+                    hrp.CFrame = CFrame.new(pos + Vector3.new(0, 3, 2))
+                    task.wait(0.1)
+                    if prompt then fireproximityprompt(prompt) end
+                    if cd then fireclickdetector(cd) end
+                    CustomNotify("🔑 АВТО-КЛЮЧ", "Открыта дверь комнаты " .. tostring(rn + 1))
+                    task.delay(30, function()
+                        interactedSet[doorId] = nil
+                    end)
+                end)
+            end
+        end)
+    end
+end)
+
+-- -----------------------------------------------
+-- Цикл: авто-открытие тумбочек/комодов
+-- -----------------------------------------------
+task.spawn(function()
+    while task.wait(0.25) do
+        pcall(function()
+            if not _G.AutoDrawerEnabled then return end
+
+            local player = game:GetService("Players").LocalPlayer
+            local char = player.Character
+            if not char then return end
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            if not hrp then return end
+
+            local rooms = workspace:FindFirstChild("CurrentRooms")
+            if not rooms then return end
+            local curRoom = GetCurrentRoomNumber()
+
+            for _, room in pairs(rooms:GetChildren()) do
+                local rn = tonumber(room.Name) or 0
+                if math.abs(rn - curRoom) > 2 then continue end
+
+                for _, obj in pairs(room:GetDescendants()) do
+                    if not DrawerNames[obj.Name] then continue end
+                    if not IsAlive(obj) then continue end
+
+                    local id = "drawer_" .. tostring(obj:GetFullName())
+                    if interactedSet[id] then continue end
+
+                    -- Проверяем есть ли вообще что с ним делать
+                    local hasPrompt = obj:FindFirstChildOfClass("ProximityPrompt", true)
+                    local hasCd = obj:FindFirstChildOfClass("ClickDetector", true)
+                    if not hasPrompt and not hasCd then continue end
+
+                    local pos = ObjPos(obj)
+                    if not pos then continue end
+
+                    interactedSet[id] = true
+                    task.spawn(function()
+                        TeleportAndFire(hrp, pos, obj)
+                        CustomNotify("🗄️ АВТО-ТУМБОЧКА", "Открыт: " .. obj.Name)
+                        task.delay(15, function()
+                            interactedSet[id] = nil
+                        end)
+                    end)
                 end
             end
         end)
