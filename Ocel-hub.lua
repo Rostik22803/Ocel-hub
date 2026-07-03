@@ -1,5 +1,5 @@
 -- =============================================================================
--- DOORS LOCAL MEGA HUB v13.0 (BYPASS SPEED + ANTI-HEARING FIGURE)
+-- DOORS LOCAL MEGA HUB v14.0 (AUTO-LIBRARY & AUTO-BREAKER 100 INCLUDED)
 -- =============================================================================
 
 local oldGui = game:GetService("CoreGui"):FindFirstChild("DoorsLocalMegaHubFinal")
@@ -16,6 +16,8 @@ _G.AntiHearingEnabled = true -- По умолчанию включено
 _G.SpeedValue = 15 -- Дефолтное значение кастомного ускорения
 _G.NotificationsEnabled = true
 _G.FullbrightEnabled = false
+_G.AutoLibraryEnabled = true  -- Авто-код библиотеки по умолчанию включен
+_G.AutoBreakerEnabled = true  -- Авто-щиток 100 двери по умолчанию включен
 
 -- Цвета обводок и кастомного текста
 local Colors = {
@@ -220,7 +222,7 @@ local ButtonContainer = Instance.new("ScrollingFrame")
 ButtonContainer.Size = UDim2.new(1, 0, 1, -40)
 ButtonContainer.Position = UDim2.new(0, 0, 0, 35)
 ButtonContainer.BackgroundTransparency = 1
-ButtonContainer.CanvasSize = UDim2.new(0, 0, 0, 570) -- Увеличена высота под новые кнопки
+ButtonContainer.CanvasSize = UDim2.new(0, 0, 0, 660) -- Увеличена высота под новые автоматизации
 ButtonContainer.ScrollBarThickness = 2
 ButtonContainer.Parent = MainFrame
 
@@ -275,7 +277,7 @@ local function OpenPicker(colorKey)
     end
 end
 
--- СВЕРТЫВАНИЕ В ТАКУЮ ЖЕ ПОЛОСОЧКУ
+-- СВЕРТЫВАНИЕ
 local isMinimized = false
 MinimizeBtn.MouseButton1Click:Connect(function()
     isMinimized = not isMinimized
@@ -368,13 +370,21 @@ local HidingButton = CreateEspControl("ESP УКРЫТИЙ", "Hiding")
 local DistanceButton = CreateSimpleButton("ДИСТАНЦИЯ ЕСП")
 local SpeedButton = CreateSimpleButton("УСКОРЕНИЕ (SPEED)")
 local AntiHearingButton = CreateSimpleButton("АНТИ-СЛУХ ФИГУРЫ")
+local AutoLibraryButton = CreateSimpleButton("АВТО-КОД БИБЛИОТЕКИ")
+local AutoBreakerButton = CreateSimpleButton("АВТО-ЩИТОК (ДВЕРЬ 100)")
 
--- По умолчанию включен, так что подкрасим кнопку зеленой
+-- Активация дефолтных включенных кнопок
 AntiHearingButton.Text = "АНТИ-СЛУХ ФИГУРЫ: ВКЛ"
 AntiHearingButton.BackgroundColor3 = Color3.fromRGB(40, 150, 40)
 
+AutoLibraryButton.Text = "АВТО-КОД БИБЛИОТЕКИ: ВКЛ"
+AutoLibraryButton.BackgroundColor3 = Color3.fromRGB(40, 150, 40)
+
+AutoBreakerButton.Text = "АВТО-ЩИТОК (ДВЕРЬ 100): ВКЛ"
+AutoBreakerButton.BackgroundColor3 = Color3.fromRGB(40, 150, 40)
+
 -- =============================================================================
--- НАСТРОЙКА ИНТЕРФЕЙСА ДЛЯ СКОРОСТИ (СПИДХАК СКЛАД)
+-- НАСТРОЙКА ИНТЕРФЕЙСА ДЛЯ СКОРОСТИ
 -- =============================================================================
 local SpeedRow = Instance.new("Frame")
 SpeedRow.Size = UDim2.new(0, 220, 0, 36)
@@ -517,15 +527,12 @@ FovResetBtn.MouseButton1Click:Connect(function()
 end)
 
 -- =============================================================================
--- 2. СТАБИЛЬНЫЙ БАЙПАС + АНТИ-СЛУХ ФИГУРЫ (HOOKMETAMETHOD / REMOTEEVENT BYPASS)
+-- 2. СТАБИЛЬНЫЙ БАЙПАС + АНТИ-СЛУХ ФИГУРЫ
 -- =============================================================================
-
--- Хук удаленного события присяди для защиты от Фигуры
 local Remotes = game:GetService("ReplicatedStorage"):WaitForChild("RemotesFolder", 5) or game:GetService("ReplicatedStorage")
 local CrouchRemote = Remotes:FindFirstChild("Crouch") or Remotes:FindFirstChild("Crouching")
 
 if not CrouchRemote then
-    -- Поиск альтернативного названия ремута, если разработчики обновили имена
     for _, obj in pairs(game:GetService("ReplicatedStorage"):GetDescendants()) do
         if obj:IsA("RemoteEvent") and (obj.Name:lower():find("crouch") or obj.Name:lower():find("sneak")) then
             CrouchRemote = obj
@@ -534,14 +541,12 @@ if not CrouchRemote then
     end
 end
 
--- Перехватчик отправки аргументов на сервер
 local oldNamecall
 oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
     local args = {...}
     local method = getnamecallmethod()
     
     if _G.AntiHearingEnabled and self == CrouchRemote and (method == "FireServer" or method == "fireServer") then
-        -- Насильно подменяем первый аргумент (состояние присяди) на true
         args[1] = true
         return oldNamecall(self, unpack(args))
     end
@@ -553,7 +558,6 @@ game:GetService("RunService").Heartbeat:Connect(function()
     pcall(function()
         local player = game:GetService("Players").LocalPlayer
         if player and player.Character then
-            -- Дополнительно постоянно шлем сигнал присяди локально, если фича активна
             if _G.AntiHearingEnabled and CrouchRemote then
                 CrouchRemote:FireServer(true)
             end
@@ -569,6 +573,77 @@ game:GetService("RunService").Heartbeat:Connect(function()
             end
         end
     end)
+end)
+
+-- =============================================================================
+-- [НОВОЕ] АВТОМАТИЗАЦИЯ БИБЛИОТЕКИ (50 ДВЕРЬ) И ЩИТКА (100 ДВЕРЬ)
+-- =============================================================================
+task.spawn(function()
+    while task.wait(0.5) do
+        if _G.AutoLibraryEnabled and GetCurrentRoomNumber() == 50 then
+            pcall(function()
+                local playerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+                local bookGui = playerGui:FindFirstChild("Books") or playerGui:FindFirstChild("BookHint")
+                local padFrame = playerGui:FindFirstChild("Cuts") and playerGui.Cuts:FindFirstChild("Padlock")
+                
+                if bookGui and padFrame and padFrame.Visible then
+                    local localFolder = workspace:FindFirstChild("CurrentRooms") and workspace.CurrentRooms:FindFirstChild("50")
+                    if localFolder and localFolder:FindFirstChild("Padlock") and localFolder.Padlock:FindFirstChild("Remotes") then
+                        local entity = localFolder.Padlock.Remotes:FindFirstChild("Unlock")
+                        
+                        -- Считываем текущую комбинацию из интерфейса подсказок
+                        local code = ""
+                        for i = 1, 5 do
+                            local slot = bookGui:FindFirstChild("Slot" .. i) or bookGui:FindFirstChild("Code" .. i)
+                            if slot and slot:FindFirstChild("TextLabel") then
+                                code = code .. tostring(slot.TextLabel.Text)
+                            end
+                        end
+                        
+                        if string.len(code) == 5 and not code:find("_") then
+                            entity:FireServer(code)
+                            CustomNotify("БИБЛИОТЕКА", "Код найден и введен автоматически: " .. code)
+                            task.wait(2)
+                        end
+                    end
+                end
+            end)
+        end
+    end
+end)
+
+task.spawn(function()
+    while task.wait(0.1) do
+        if _G.AutoBreakerEnabled and GetCurrentRoomNumber() == 100 then
+            pcall(function()
+                local playerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+                local mainUI = playerGui:FindFirstChild("MainUI")
+                
+                -- Проверяем, открыт ли интерфейс мини-игры со щитком
+                if mainUI and mainUI:FindFirstChild("BreakerBox") and mainUI.BreakerBox.Visible then
+                    local box = mainUI.BreakerBox
+                    
+                    -- Ищем удаленное событие щитка
+                    local remote = Remotes:FindFirstChild("Breaker") or Remotes:FindFirstChild("BreakerBox")
+                    if not remote then
+                        for _, r in pairs(Remotes:GetChildren()) do
+                            if r:IsA("RemoteEvent") and r.Name:lower():find("break") then remote = r break end
+                        end
+                    end
+                    
+                    if remote then
+                        -- Автоматически эмулируем безошибочное прохождение каждого этапа
+                        for i = 1, 3 do
+                            task.wait(0.1)
+                            remote:FireServer(i, true) -- Сигнализируем серверу об успешном переключении тумблеров
+                        end
+                        CustomNotify("ЩИТОК 100 ДВЕРИ", "Мини-игра успешно решена!")
+                        task.wait(3)
+                    end
+                end
+            end)
+        end
+    end
 end)
 
 -- =============================================================================
@@ -768,6 +843,8 @@ HidingButton.MouseButton1Click:Connect(function() ToggleState(HidingButton, "Hid
 DistanceButton.MouseButton1Click:Connect(function() ToggleState(DistanceButton, "ShowDistanceEnabled", "ДИСТАНЦИЯ ЕСП: ВКЛ", "ДИСТАНЦИЯ ЕСП: ВЫКЛ") end)
 SpeedButton.MouseButton1Click:Connect(function() ToggleState(SpeedButton, "SpeedHackEnabled", "УСКОРЕНИЕ: ВКЛ", "УСКОРЕНИЕ: ВЫКЛ") end)
 AntiHearingButton.MouseButton1Click:Connect(function() ToggleState(AntiHearingButton, "AntiHearingEnabled", "АНТИ-СЛУХ ФИГУРЫ: ВКЛ", "АНТИ-СЛУХ ФИГУРЫ: ВЫКЛ") end)
+AutoLibraryButton.MouseButton1Click:Connect(function() ToggleState(AutoLibraryButton, "AutoLibraryEnabled", "АВТО-КОД БИБЛИОТЕКИ: ВКЛ", "АВТО-КОД БИБЛИОТЕКИ: ВЫКЛ") end)
+AutoBreakerButton.MouseButton1Click:Connect(function() ToggleState(AutoBreakerButton, "AutoBreakerEnabled", "АВТО-ЩИТОК (ДВЕРЬ 100): ВКЛ", "АВТО-ЩИТОК (ДВЕРЬ 100): ВЫКЛ") end)
 
 FullbrightButton.MouseButton1Click:Connect(function()
     ToggleState(FullbrightButton, "FullbrightEnabled", "ФУЛЛБРАЙТ: ВКЛ", "ФУЛЛБРАЙТ: ВЫКЛ")
@@ -775,4 +852,4 @@ FullbrightButton.MouseButton1Click:Connect(function()
 end)
 NotifToggleButton.MouseButton1Click:Connect(function() ToggleState(NotifToggleButton, "NotificationsEnabled", "УВЕДОМЛЕНИЯ: ВКЛ", "УВЕДОМЛЕНИЯ: ВЫКЛ") end)
 
-CustomNotify("SYSTEM", "Ocel-hub v13.0 успешно запущен!")
+CustomNotify("SYSTEM", "Ocel-hub v14.0 успешно запущен!")
