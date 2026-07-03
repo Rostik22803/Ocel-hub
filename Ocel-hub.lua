@@ -1,5 +1,5 @@
 -- =============================================================================
--- DOORS LOCAL MEGA HUB v15.0 (ADVANCED JOINT-ANIMATION BYPASS)
+-- DOORS LOCAL MEGA HUB v16.0 (PHYSICS VECTOR IMPULSE BYPASS)
 -- =============================================================================
 
 local oldGui = game:GetService("CoreGui"):FindFirstChild("DoorsLocalMegaHubFinal")
@@ -12,7 +12,7 @@ _G.ItemEspEnabled = false
 _G.HidingEspEnabled = false
 _G.ShowDistanceEnabled = false
 _G.SpeedHackEnabled = false
-_G.SpeedValue = 25 
+_G.SpeedValue = 22 -- Безопасный старт для нового байпасса
 _G.NotificationsEnabled = true
 _G.FullbrightEnabled = false
 
@@ -271,7 +271,6 @@ local function OpenPicker(colorKey)
     end
 end
 
--- Идеальное свертывание в полоску 24px
 local isMinimized = false
 MinimizeBtn.MouseButton1Click:Connect(function()
     isMinimized = not isMinimized
@@ -417,17 +416,17 @@ local function UpdateSpeedLabel()
 end
 
 SpeedMinusBtn.MouseButton1Click:Connect(function()
-    _G.SpeedValue = math.max(0, _G.SpeedValue - 2)
+    _G.SpeedValue = math.max(16, _G.SpeedValue - 1)
     UpdateSpeedLabel()
 end)
 
 SpeedPlusBtn.MouseButton1Click:Connect(function()
-    _G.SpeedValue = math.min(50, _G.SpeedValue + 2)
+    _G.SpeedValue = math.min(35, _G.SpeedValue + 1)
     UpdateSpeedLabel()
 end)
 
 SpeedResetBtn.MouseButton1Click:Connect(function()
-    _G.SpeedValue = 25
+    _G.SpeedValue = 22
     UpdateSpeedLabel()
 end)
 
@@ -506,32 +505,41 @@ FovResetBtn.MouseButton1Click:Connect(function()
 end)
 
 -- =============================================================================
--- 2. НЕУЯЗВИМЫЙ АНИМАЦИОННЫЙ БАЙПАС ДЛЯ СКОРОСТИ (>23)
+-- 2. НАДЕЖНЫЙ ВЕКТОРНЫЙ БАЙПАСС ФИЗИКИ (НОВЫЙ МЕТОД v16.0)
 -- =============================================================================
-game:GetService("RunService").Heartbeat:Connect(function()
-    pcall(function()
-        local player = game:GetService("Players").LocalPlayer
-        if not (player and player.Character) then return end
-        
-        local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
-        local root = player.Character:FindFirstChild("HumanoidRootPart")
-        if not (humanoid and root) then return end
-        
-        -- Ищем основной двигательный сустав бедра/ног в R15 или R6 сборке
-        local rootJoint = root:FindFirstChild("RootJoint") or (player.Character:FindFirstChild("LowerTorso") and player.Character.LowerTorso:FindFirstChild("Root") or nil)
-
+task.spawn(function()
+    while true do
+        task.wait(0.02) -- Микро-задержка для прерывистых импульсов
         if _G.SpeedHackEnabled then
-            -- Оставляем нормальную WalkSpeed, чтобы не вызывать подозрений у античита
-            if humanoid.WalkSpeed ~= 16 then humanoid.WalkSpeed = 16 end
-            
-            if humanoid.MoveDirection.Magnitude > 0 and rootJoint then
-                -- Полный обход: Сдвигаем трансформационную C0 матрицу сустава в цикле физики.
-                -- Для сервера наши координаты остаются синхронными, но локально мы бежим со скоростью света.
-                local speedMultiplier = (_G.SpeedValue - 16) / 45
-                rootJoint.C0 = rootJoint.C0 * CFrame.new(0, 0, -speedMultiplier)
-            end
+            pcall(function()
+                local player = game:GetService("Players").LocalPlayer
+                if not (player and player.Character) then return end
+                
+                local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+                local root = player.Character:FindFirstChild("HumanoidRootPart")
+                if not (humanoid and root) then return end
+                
+                -- Сохраняем стандартную скорость для античита
+                if humanoid.WalkSpeed ~= 16 then humanoid.WalkSpeed = 16 end
+                
+                -- Если игрок реально куда-то идет
+                if humanoid.MoveDirection.Magnitude > 0 then
+                    local currentVelocity = root.AssemblyLinearVelocity
+                    local addSpeed = _G.SpeedValue - 16
+                    
+                    -- Создаем вектор силы в направлении движения
+                    local pushVector = humanoid.MoveDirection * addSpeed
+                    
+                    -- Применяем физический импульс, сохраняя текущую вертикальную скорость (чтобы не ломать прыжки/падения)
+                    root.AssemblyLinearVelocity = Vector3.new(
+                        pushVector.X + currentVelocity.X * 0.4,
+                        currentVelocity.Y,
+                        pushVector.Z + currentVelocity.Z * 0.4
+                    )
+                end
+            end)
         end
-    end)
+    end
 end)
 
 -- =============================================================================
@@ -737,4 +745,4 @@ FullbrightButton.MouseButton1Click:Connect(function()
 end)
 NotifToggleButton.MouseButton1Click:Connect(function() ToggleState(NotifToggleButton, "NotificationsEnabled", "УВЕДОМЛЕНИЯ: ВКЛ", "УВЕДОМЛЕНИЯ: ВЫКЛ") end)
 
-CustomNotify("SYSTEM", "Ocel-hub v15.0 успешно запущен!")
+CustomNotify("SYSTEM", "Ocel-hub v16.0 успешно запущен!")
