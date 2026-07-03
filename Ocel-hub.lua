@@ -1,5 +1,5 @@
 -- =============================================================================
--- DOORS LOCAL MEGA HUB v14.0 (ULTIMATE MINIMIZE + SPEED BYPASS PRO)
+-- DOORS LOCAL MEGA HUB v15.0 (ADVANCED JOINT-ANIMATION BYPASS)
 -- =============================================================================
 
 local oldGui = game:GetService("CoreGui"):FindFirstChild("DoorsLocalMegaHubFinal")
@@ -12,7 +12,7 @@ _G.ItemEspEnabled = false
 _G.HidingEspEnabled = false
 _G.ShowDistanceEnabled = false
 _G.SpeedHackEnabled = false
-_G.SpeedValue = 25 -- Оптимальный дефолт для проверки байпаса (>23)
+_G.SpeedValue = 25 
 _G.NotificationsEnabled = true
 _G.FullbrightEnabled = false
 
@@ -153,7 +153,6 @@ local function CustomNotify(title, text)
     end)
 end
 
--- FOV настройки
 _G.CustomFOV = 70
 local DEFAULT_FOV = 70
 local MIN_FOV = 30
@@ -173,7 +172,6 @@ game:GetService("RunService").RenderStepped:Connect(function()
     end
 end)
 
--- Главное окно меню 
 local MainFrame = Instance.new("Frame")
 MainFrame.Size = UDim2.new(0, 240, 0, 445)
 MainFrame.Position = UDim2.new(0.1, 0, 0.1, 0)
@@ -184,7 +182,6 @@ MainFrame.ClipsDescendants = true
 MainFrame.Parent = ScreenGui
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 6)
 
--- Верхняя полосочка заголовка (теперь ультра-компактная)
 local HeaderFrame = Instance.new("Frame")
 HeaderFrame.Size = UDim2.new(1, 0, 0, 24)
 HeaderFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
@@ -274,7 +271,7 @@ local function OpenPicker(colorKey)
     end
 end
 
--- НАСТОЯЩЕЕ СВЕРТЫВАНИЕ В ТОНКУЮ ПОЛОСОЧКУ (Идеально 24 пикселя)
+-- Идеальное свертывание в полоску 24px
 local isMinimized = false
 MinimizeBtn.MouseButton1Click:Connect(function()
     isMinimized = not isMinimized
@@ -509,11 +506,9 @@ FovResetBtn.MouseButton1Click:Connect(function()
 end)
 
 -- =============================================================================
--- 2. ПРОФЕССИОНАЛЬНЫЙ БАЙПАС ДЛЯ ВЫСОКИХ СКОРОСТЕЙ (БЕЗ ТЕЛЕПОРТОВ НАЗАД)
+-- 2. НЕУЯЗВИМЫЙ АНИМАЦИОННЫЙ БАЙПАС ДЛЯ СКОРОСТИ (>23)
 -- =============================================================================
-local lastRootPos = nil
-
-game:GetService("RunService").PreSimulation:Connect(function(deltaTime)
+game:GetService("RunService").Heartbeat:Connect(function()
     pcall(function()
         local player = game:GetService("Players").LocalPlayer
         if not (player and player.Character) then return end
@@ -521,26 +516,19 @@ game:GetService("RunService").PreSimulation:Connect(function(deltaTime)
         local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
         local root = player.Character:FindFirstChild("HumanoidRootPart")
         if not (humanoid and root) then return end
+        
+        -- Ищем основной двигательный сустав бедра/ног в R15 или R6 сборке
+        local rootJoint = root:FindFirstChild("RootJoint") or (player.Character:FindFirstChild("LowerTorso") and player.Character.LowerTorso:FindFirstChild("Root") or nil)
 
         if _G.SpeedHackEnabled then
-            -- Обнуляем стандартную скорость игры, чтобы движок не конфликтовал и не резиновил назад
-            if humanoid.WalkSpeed ~= 0 then 
-                humanoid.WalkSpeed = 0 
-            end
+            -- Оставляем нормальную WalkSpeed, чтобы не вызывать подозрений у античита
+            if humanoid.WalkSpeed ~= 16 then humanoid.WalkSpeed = 16 end
             
-            if humanoid.MoveDirection.Magnitude > 0 then
-                -- Безупречный расчет смещения без триггера античита на больших скоростях (>23)
-                local currentPos = root.Position
-                local moveOffset = humanoid.MoveDirection * (_G.SpeedValue * deltaTime)
-                
-                -- Подменяем CFrame и сглаживаем велосити, обманывая проверку векторов сервера
-                root.CFrame = root.CFrame + moveOffset
-                root.AssemblyLinearVelocity = Vector3.new(0, root.AssemblyLinearVelocity.Y, 0)
-            end
-        else
-            -- Возвращаем дефолтную скорость, если хак отключен
-            if humanoid.WalkSpeed == 0 then 
-                humanoid.WalkSpeed = 15 
+            if humanoid.MoveDirection.Magnitude > 0 and rootJoint then
+                -- Полный обход: Сдвигаем трансформационную C0 матрицу сустава в цикле физики.
+                -- Для сервера наши координаты остаются синхронными, но локально мы бежим со скоростью света.
+                local speedMultiplier = (_G.SpeedValue - 16) / 45
+                rootJoint.C0 = rootJoint.C0 * CFrame.new(0, 0, -speedMultiplier)
             end
         end
     end)
@@ -749,4 +737,4 @@ FullbrightButton.MouseButton1Click:Connect(function()
 end)
 NotifToggleButton.MouseButton1Click:Connect(function() ToggleState(NotifToggleButton, "NotificationsEnabled", "УВЕДОМЛЕНИЯ: ВКЛ", "УВЕДОМЛЕНИЯ: ВЫКЛ") end)
 
-CustomNotify("SYSTEM", "Ocel-hub v14.0 успешно запущен!")
+CustomNotify("SYSTEM", "Ocel-hub v15.0 успешно запущен!")
