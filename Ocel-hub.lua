@@ -625,103 +625,84 @@ task.spawn(function()
                 -- Только текущая и следующая комнаты
                 if roomNum >= currentRoomNum and roomNum <= currentRoomNum + 1 then
                     for _, obj in pairs(room:GetDescendants()) do
-                        local distance = (obj:IsA("BasePart") or obj:IsA("Model")) and 
-                                        (obj:GetPivot().Position - humanoidRootPart.Position).Magnitude or 999
+                        local objPos = nil
+                        if obj:IsA("BasePart") then
+                            objPos = obj.Position
+                        elseif obj:IsA("Model") then
+                            local root = obj.PrimaryPart or obj:FindFirstChildOfClass("BasePart")
+                            if root then objPos = root.Position end
+                        end
+                        
+                        local distance = objPos and (objPos - humanoidRootPart.Position).Magnitude or 999
                         
                         if distance < maxDistance then
-                            -- Подбор предметов
+                            -- Универсальный подход: ищем ВСЕ ProximityPrompt'ы рядом
+                            local prompts = {}
+                            
+                            -- Если это Model, ищем промпты внутри
                             if obj:IsA("Model") then
-                                if obj.Name == "GoldPile" then
-                                    local prompt = obj:FindFirstChildOfClass("ProximityPrompt", true)
-                                    if prompt and prompt.Enabled then
-                                        fireproximityprompt(prompt)
-                                    end
-                                elseif obj.Name == "KeyObtain" then
-                                    local prompt = obj:FindFirstChildOfClass("ProximityPrompt", true)
-                                    if prompt and prompt.Enabled then
-                                        fireproximityprompt(prompt)
-                                    end
-                                elseif obj.Name == "LiveHintBook" then
-                                    local prompt = obj:FindFirstChildOfClass("ProximityPrompt", true)
-                                    if prompt and prompt.Enabled then
-                                        fireproximityprompt(prompt)
-                                    end
-                                elseif obj.Name == "LiveFuseElement" then
-                                    local prompt = obj:FindFirstChildOfClass("ProximityPrompt", true)
-                                    if prompt and prompt.Enabled then
-                                        fireproximityprompt(prompt)
-                                    end
-                                -- Открытие тумбочек/сундуков
-                                elseif obj.Name == "ChestBox" or obj.Name == "ChestBoxLocked" then
-                                    local prompt = obj:FindFirstChildOfClass("ProximityPrompt", true)
-                                    if prompt and prompt.Enabled then
-                                        fireproximityprompt(prompt)
-                                    end
-                                elseif obj.Name == "DrawerContainer" then
-                                    local prompt = obj:FindFirstChildOfClass("ProximityPrompt", true)
-                                    if prompt and prompt.Enabled then
-                                        fireproximityprompt(prompt)
-                                    end
-                                -- Дополнительные ящики и контейнеры
-                                elseif obj.Name == "Drawer" or obj.Name == "Drawers" then
-                                    local prompt = obj:FindFirstChildOfClass("ProximityPrompt", true)
-                                    if prompt and prompt.Enabled then
-                                        fireproximityprompt(prompt)
-                                    end
-                                elseif obj.Name == "Crate" or obj.Name == "CrateBox" then
-                                    local prompt = obj:FindFirstChildOfClass("ProximityPrompt", true)
-                                    if prompt and prompt.Enabled then
-                                        fireproximityprompt(prompt)
-                                    end
-                                elseif obj.Name == "Barrel" then
-                                    local prompt = obj:FindFirstChildOfClass("ProximityPrompt", true)
-                                    if prompt and prompt.Enabled then
-                                        fireproximityprompt(prompt)
-                                    end
-                                elseif obj.Name == "GiftBox" or obj.Name == "Present" then
-                                    local prompt = obj:FindFirstChildOfClass("ProximityPrompt", true)
-                                    if prompt and prompt.Enabled then
-                                        fireproximityprompt(prompt)
-                                    end
-                                elseif obj.Name == "SmallCabinet" or obj.Name == "Cabinet" then
-                                    local prompt = obj:FindFirstChildOfClass("ProximityPrompt", true)
-                                    if prompt and prompt.Enabled then
-                                        fireproximityprompt(prompt)
-                                    end
-                                elseif obj.Name == "Locker" or obj.Name == "LockerBox" then
-                                    local prompt = obj:FindFirstChildOfClass("ProximityPrompt", true)
-                                    if prompt and prompt.Enabled then
-                                        fireproximityprompt(prompt)
+                                for _, child in pairs(obj:GetDescendants()) do
+                                    if child:IsA("ProximityPrompt") and child.Enabled then
+                                        table.insert(prompts, child)
                                     end
                                 end
-                            end
-                            
-                            -- Универсальный авто-открыватель: любые объекты с промптом "Open"
-                            if obj:IsA("Model") then
-                                for _, prompt in pairs(obj:GetDescendants()) do
-                                    if prompt:IsA("ProximityPrompt") and prompt.Enabled then
-                                        local action = string.lower(prompt.ActionText or "")
-                                        if action == "open" or action == "открыть" or action == "search" or action == "обыскать" then
-                                            fireproximityprompt(prompt)
-                                        end
+                            -- Если это BasePart, проверяем его детей
+                            elseif obj:IsA("BasePart") then
+                                for _, child in pairs(obj:GetChildren()) do
+                                    if child:IsA("ProximityPrompt") and child.Enabled then
+                                        table.insert(prompts, child)
                                     end
                                 end
+                            -- Если сам объект - промпт
+                            elseif obj:IsA("ProximityPrompt") and obj.Enabled then
+                                table.insert(prompts, obj)
                             end
                             
-                            -- Открытие дверей с ключом
-                            if obj.Name == "Door" and obj.Parent and obj.Parent.Name == "Door" then
-                                local doorParent = obj.Parent
-                                local lock = doorParent:FindFirstChild("Lock") or doorParent:FindFirstChild("KeyLock")
-                                if lock then
-                                    local prompt = lock:FindFirstChildOfClass("ProximityPrompt", true)
-                                    if prompt and prompt.Enabled then
-                                        -- Проверяем, есть ли ключ в инвентаре
-                                        local hasKey = false
-                                        if character:FindFirstChild("Key") then hasKey = true end
-                                        if hasKey then
-                                            fireproximityprompt(prompt)
-                                        end
-                                    end
+                            -- Обрабатываем найденные промпты
+                            for _, prompt in pairs(prompts) do
+                                local action = string.lower(prompt.ActionText or "")
+                                local objName = string.lower(prompt.Parent and prompt.Parent.Name or "")
+                                local objParentName = string.lower(prompt.Parent and prompt.Parent.Parent and prompt.Parent.Parent.Name or "")
+                                
+                                -- Проверяем тип действия или имя объекта
+                                local shouldActivate = false
+                                
+                                -- По ActionText
+                                if action:find("open") or action:find("открыть") or 
+                                   action:find("search") or action:find("обыскать") or
+                                   action:find("pick") or action:find("взять") or
+                                   action:find("unlock") or action:find("отпереть") or
+                                   action:find("collect") or action:find("собрать") or
+                                   action:find("take") or action:find("use") then
+                                    shouldActivate = true
+                                end
+                                
+                                -- По имени объекта (сундуки, ящики, контейнеры)
+                                if objName:find("chest") or objName:find("drawer") or 
+                                   objName:find("cabinet") or objName:find("locker") or
+                                   objName:find("crate") or objName:find("barrel") or
+                                   objName:find("box") or objName:find("container") or
+                                   objParentName:find("chest") or objParentName:find("drawer") or
+                                   objParentName:find("cabinet") or objParentName:find("container") then
+                                    shouldActivate = true
+                                end
+                                
+                                -- Предметы для подбора
+                                if objName:find("gold") or objName:find("key") or 
+                                   objName:find("book") or objName:find("fuse") or
+                                   objName:find("lever") or objName:find("item") then
+                                    shouldActivate = true
+                                end
+                                
+                                -- Исключения: двери с замком требуют ключ
+                                if (objName:find("lock") or objParentName:find("door")) and 
+                                   (objName:find("key") or action:find("unlock")) then
+                                    local hasKey = character:FindFirstChild("Key") ~= nil
+                                    shouldActivate = hasKey
+                                end
+                                
+                                if shouldActivate then
+                                    fireproximityprompt(prompt)
                                 end
                             end
                         end
