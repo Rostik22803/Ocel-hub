@@ -602,8 +602,46 @@ end)
 -- =============================================================================
 -- 3.1. ИНСТАНТ ИНТЕРАКТ
 -- =============================================================================
+
+-- Слова в ActionText которые НЕ нужно трогать (монстры, лифт, двери-переходы и т.п.)
+local BLACKLIST_ACTIONS = {
+    ["hide"] = true, ["sit"] = true, ["ride"] = true,
+    ["enter"] = true, ["escape"] = true, ["leave"] = true,
+}
+
+-- Ключевые слова для разрешённых действий (подбор, открытие)
+local WHITELIST_ACTIONS = {
+    ["collect"] = true, ["grab"] = true, ["pick"] = true,
+    ["open"] = true, ["search"] = true, ["take"] = true,
+    ["unlock"] = true, ["loot"] = true, ["use"] = true,
+    ["read"] = true, ["insert"] = true,
+}
+
+local function IsAllowedPrompt(prompt)
+    -- Сначала проверяем что промпт вообще активен и не требует холдинга дольше 3с
+    if not prompt.Enabled then return false end
+    if prompt.HoldDuration > 3 then return false end
+
+    local action = prompt.ActionText:lower()
+
+    -- Если в чёрном списке — пропускаем
+    for word, _ in pairs(BLACKLIST_ACTIONS) do
+        if action:find(word) then return false end
+    end
+
+    -- Если есть слово из белого списка — разрешаем
+    for word, _ in pairs(WHITELIST_ACTIONS) do
+        if action:find(word) then return true end
+    end
+
+    -- Без явного ActionText тоже пробуем (многие промпты в Doors пустые)
+    if action == "" then return true end
+
+    return false
+end
+
 task.spawn(function()
-    while task.wait(0.2) do
+    while task.wait(0.15) do
         pcall(function()
             if not _G.InstantInteractEnabled then return end
             
@@ -618,67 +656,20 @@ task.spawn(function()
             if not rooms then return end
             
             local currentRoomNum = GetCurrentRoomNumber()
-            local maxDistance = 15
+            local maxDistance = 12
             
             for _, room in pairs(rooms:GetChildren()) do
                 local roomNum = tonumber(room.Name) or 0
-                -- Только текущая и следующая комнаты
                 if roomNum >= currentRoomNum and roomNum <= currentRoomNum + 1 then
+                    -- Ищем все ProximityPrompt в комнате напрямую
                     for _, obj in pairs(room:GetDescendants()) do
-                        local distance = (obj:IsA("BasePart") or obj:IsA("Model")) and 
-                                        (obj:GetPivot().Position - humanoidRootPart.Position).Magnitude or 999
-                        
-                        if distance < maxDistance then
-                            -- Подбор предметов
-                            if obj:IsA("Model") then
-                                if obj.Name == "GoldPile" then
-                                    local prompt = obj:FindFirstChildOfClass("ProximityPrompt", true)
-                                    if prompt and prompt.Enabled then
-                                        fireproximityprompt(prompt)
-                                    end
-                                elseif obj.Name == "KeyObtain" then
-                                    local prompt = obj:FindFirstChildOfClass("ProximityPrompt", true)
-                                    if prompt and prompt.Enabled then
-                                        fireproximityprompt(prompt)
-                                    end
-                                elseif obj.Name == "LiveHintBook" then
-                                    local prompt = obj:FindFirstChildOfClass("ProximityPrompt", true)
-                                    if prompt and prompt.Enabled then
-                                        fireproximityprompt(prompt)
-                                    end
-                                elseif obj.Name == "LiveFuseElement" then
-                                    local prompt = obj:FindFirstChildOfClass("ProximityPrompt", true)
-                                    if prompt and prompt.Enabled then
-                                        fireproximityprompt(prompt)
-                                    end
-                                -- Открытие тумбочек/сундуков
-                                elseif obj.Name == "ChestBox" or obj.Name == "ChestBoxLocked" then
-                                    local prompt = obj:FindFirstChildOfClass("ProximityPrompt", true)
-                                    if prompt and prompt.Enabled then
-                                        fireproximityprompt(prompt)
-                                    end
-                                elseif obj.Name == "DrawerContainer" then
-                                    local prompt = obj:FindFirstChildOfClass("ProximityPrompt", true)
-                                    if prompt and prompt.Enabled then
-                                        fireproximityprompt(prompt)
-                                    end
-                                end
-                            end
-                            
-                            -- Открытие дверей с ключом
-                            if obj.Name == "Door" and obj.Parent and obj.Parent.Name == "Door" then
-                                local doorParent = obj.Parent
-                                local lock = doorParent:FindFirstChild("Lock") or doorParent:FindFirstChild("KeyLock")
-                                if lock then
-                                    local prompt = lock:FindFirstChildOfClass("ProximityPrompt", true)
-                                    if prompt and prompt.Enabled then
-                                        -- Проверяем, есть ли ключ в инвентаре
-                                        local hasKey = false
-                                        if character:FindFirstChild("Key") then hasKey = true end
-                                        if hasKey then
-                                            fireproximityprompt(prompt)
-                                        end
-                                    end
+                        if obj:IsA("ProximityPrompt") and obj.Enabled then
+                            -- Берём позицию родительской Part
+                            local part = obj.Parent
+                            if part and part:IsA("BasePart") then
+                                local dist = (part.Position - humanoidRootPart.Position).Magnitude
+                                if dist <= maxDistance and IsAllowedPrompt(obj) then
+                                    pcall(fireproximityprompt, obj)
                                 end
                             end
                         end
