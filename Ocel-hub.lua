@@ -287,9 +287,11 @@ MinimizeBtn.MouseButton1Click:Connect(function()
     if isMinimized then
         MinimizeBtn.Text = "+"
         ClosePicker() 
+        ButtonContainer.Visible = false
         MainFrame:TweenSize(UDim2.new(0, 240, 0, 35), "Out", "Quart", 0.25, true)
     else
         MinimizeBtn.Text = "—"
+        ButtonContainer.Visible = true
         MainFrame:TweenSize(UDim2.new(0, 240, 0, 372), "Out", "Quart", 0.25, true)
     end
 end)
