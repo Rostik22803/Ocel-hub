@@ -449,8 +449,8 @@ local function GetDistanceSuffix(object)
     if not character then return "" end
     local rootPart = character:FindFirstChild("HumanoidRootPart")
     if not rootPart then return "" end
-    -- Ищем любую BasePart в объекте (или сам объект)
-    local part = object:IsA("BasePart") and object or object:FindFirstChildOfClass("BasePart")
+    -- Ищем BasePart рекурсивно (нужно для монстров, предметов, укрытий)
+    local part = object:IsA("BasePart") and object or object:FindFirstChildWhichIsA("BasePart", true)
     if not part then return "" end
     local dist = math.floor((rootPart.Position - part.Position).Magnitude)
     return " | " .. dist .. "m"
