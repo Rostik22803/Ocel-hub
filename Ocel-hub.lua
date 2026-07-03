@@ -662,6 +662,49 @@ task.spawn(function()
                                     if prompt and prompt.Enabled then
                                         fireproximityprompt(prompt)
                                     end
+                                -- Дополнительные ящики и контейнеры
+                                elseif obj.Name == "Drawer" or obj.Name == "Drawers" then
+                                    local prompt = obj:FindFirstChildOfClass("ProximityPrompt", true)
+                                    if prompt and prompt.Enabled then
+                                        fireproximityprompt(prompt)
+                                    end
+                                elseif obj.Name == "Crate" or obj.Name == "CrateBox" then
+                                    local prompt = obj:FindFirstChildOfClass("ProximityPrompt", true)
+                                    if prompt and prompt.Enabled then
+                                        fireproximityprompt(prompt)
+                                    end
+                                elseif obj.Name == "Barrel" then
+                                    local prompt = obj:FindFirstChildOfClass("ProximityPrompt", true)
+                                    if prompt and prompt.Enabled then
+                                        fireproximityprompt(prompt)
+                                    end
+                                elseif obj.Name == "GiftBox" or obj.Name == "Present" then
+                                    local prompt = obj:FindFirstChildOfClass("ProximityPrompt", true)
+                                    if prompt and prompt.Enabled then
+                                        fireproximityprompt(prompt)
+                                    end
+                                elseif obj.Name == "SmallCabinet" or obj.Name == "Cabinet" then
+                                    local prompt = obj:FindFirstChildOfClass("ProximityPrompt", true)
+                                    if prompt and prompt.Enabled then
+                                        fireproximityprompt(prompt)
+                                    end
+                                elseif obj.Name == "Locker" or obj.Name == "LockerBox" then
+                                    local prompt = obj:FindFirstChildOfClass("ProximityPrompt", true)
+                                    if prompt and prompt.Enabled then
+                                        fireproximityprompt(prompt)
+                                    end
+                                end
+                            end
+                            
+                            -- Универсальный авто-открыватель: любые объекты с промптом "Open"
+                            if obj:IsA("Model") then
+                                for _, prompt in pairs(obj:GetDescendants()) do
+                                    if prompt:IsA("ProximityPrompt") and prompt.Enabled then
+                                        local action = string.lower(prompt.ActionText or "")
+                                        if action == "open" or action == "открыть" or action == "search" or action == "обыскать" then
+                                            fireproximityprompt(prompt)
+                                        end
+                                    end
                                 end
                             end
                             
